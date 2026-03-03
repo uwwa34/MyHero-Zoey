@@ -24,9 +24,9 @@ const COL = {
 };
 
 const PLAYER_SPEED     = 7;
-const BULLET_SPEED_VAL = 8; //12
+const BULLET_SPEED_VAL = 7; //12
 const SPECIAL_SPEED    = 9;
-const ITEM_SPEED       = 3;
+const ITEM_SPEED       = 5;
 const START_SPECIALS   = 2;
 const MAX_SPECIALS     = 9;
 const MAX_WEAPON_LEVEL = 4;   // Lv1=1shot Lv2=3shot Lv3=6shot Lv4=spread full
@@ -47,11 +47,17 @@ const MAX_WEAPON_LEVEL = 4;   // Lv1=1shot Lv2=3shot Lv3=6shot Lv4=spread full
 const ACTIVE_SPECIAL = 'starrain';
 
 // ─────────────────────────────────────────────────────
-//  🎮 ENEMY SPAWN CONFIG — ปรับความยากของเกม
+//  🎮 ENEMY SPAWN CONFIG
 // ─────────────────────────────────────────────────────
-const SPAWN_INTERVAL    = 90;   // frames ระหว่าง wave (90=1.5วิ, 60=1วิ)
-const SPAWN_PER_WAVE    = 4;    // จำนวน enemy ต่อ wave (โผล่พร้อมกัน)
-const WAVES_BEFORE_BOSS = 5;    // กี่ wave ก่อนเจอบอส (5 wave × 4 ตัว = 20 ตัว)
+const SPAWN_INTERVAL   = 80;   // frames ระหว่าง wave
+const SPAWN_PER_WAVE   = 5;    // enemy โผล่พร้อมกันต่อ wave
+const SPAWN_TOTAL      = 20;   // enemy ทั้งหมดก่อนเจอบอส
+
+// ─────────────────────────────────────────────────────
+//  🛡️ BOSS BARRIER CONFIG
+// ─────────────────────────────────────────────────────
+const BOSS_BARRIER_DURATION = 300;  // frames (5 วิ) barrier เปิดตอนบอสโผล่
+
 
 const STATE = {
   INTRO      : 'intro',

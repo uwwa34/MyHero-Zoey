@@ -24,6 +24,7 @@ class Game {
     this.friend   = new Friend(images, WIDTH/2, HUD_H + GAME_H/2);
 
     this.spawnTimer = 0; this.killed = 0;
+    this.spawnCount  = 0;
     this.introTimer = 0; this.introPhase = 0;
     this.boss.y = HUD_H - 150;
     this.gameTimer      = 0;    // นับเฟรมตั้งแต่เริ่ม PLAYING (ใช้คำนวณ bonus)
@@ -31,6 +32,8 @@ class Game {
 
     this.victoryTimer   = 0;
     this.victoryCanExit = false;
+    this.playerInvTimer  = 0;  // invincibility frames หลังโดน
+    this.bossBarrierTimer = 0;  // boss barrier countdown
     this.reachedFriend  = false;
     this.gameOverTimer  = 0;
     this.gameOverReady  = false;
@@ -97,16 +100,27 @@ class Game {
       const r = canvas.getBoundingClientRect();
       return [(clientX-r.left)*WIDTH/r.width, (clientY-r.top)*HEIGHT/r.height];
     };
+    const handleTap = (x, y) => {
+      if (this.rankingScreen.visible) {
+        this.rankingScreen.handleTap(x, y);
+        return;
+      }
+      // Game Over: tap ที่ปุ่ม "TAP TO PLAY AGAIN"
+      if (this.state === STATE.GAME_OVER && this.gameOverReady) {
+        const bx = WIDTH/2-110, by = HEIGHT/2+30, bw = 220, bh = 50;
+        if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) {
+          this.restart();
+        }
+      }
+    };
     canvas.addEventListener('touchstart', e => {
-      if (!this.rankingScreen.visible) return;
       e.preventDefault();
       const [x,y] = toCanvas(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-      this.rankingScreen.handleTap(x, y);
+      handleTap(x, y);
     }, { passive: false });
     canvas.addEventListener('mousedown', e => {
-      if (!this.rankingScreen.visible) return;
       const [x,y] = toCanvas(e.clientX, e.clientY);
-      this.rankingScreen.handleTap(x, y);
+      handleTap(x, y);
     });
   }
 
@@ -121,7 +135,7 @@ class Game {
       return;
     }
     if (this.state===STATE.GAME_OVER) {
-      if (this.gameOverReady) { this.restart(); }  // Game Over → restart ตรงๆ
+      if (this.gameOverReady) { this.restart(); return; }
       return;
     }
     if (this.state===STATE.PLAYING||this.state===STATE.BOSS_FIGHT) {
@@ -175,6 +189,9 @@ class Game {
 
     this.spawnTimer  = 0;
     this.killed      = 0;
+    this.spawnCount  = 0;
+    this.playerInvTimer  = 0;
+    this.bossBarrierTimer = 0;
     this.gameTimer   = 0;
     this.gameTimerActive = false;
     this.bonusBreakdown  = null;
@@ -192,6 +209,7 @@ class Game {
 
   // ── Boss scene ────────────────────────────────────
   _addBossScene() {
+    this.bossBarrierTimer = BOSS_BARRIER_DURATION;  // เปิด barrier ตอนบอสโผล่
     this.cage.x = this.boss.cx - this.cage.w/2;
     this.cage.y = this.boss.top - this.cage.h - 5;
     this.friend = new Friend(this.images, this.cage.cx, this.cage.cy);
@@ -242,6 +260,26 @@ class Game {
 
   // ── Collision ─────────────────────────────────────
   _overlap(a,b){ return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+
+  // คำนวณ special damage เป็น % HP บอส
+  // flame/star/tornado = 15%, thunder = 17%, bigbomb = 22%, laser/wave/barrier-break = 20%
+  _specialDmg(id) {
+    // % HP บอส *ต่อ 1 ครั้งกด* (รวมทุกนัดในชุด)
+    // Flame=12นัด, Tornado=6นัด, Star=8นัด → หารจำนวนนัดแล้ว
+    const totalPct = {
+      flame    : 0.18,   // 18% รวม ÷ 12 นัด = 1.5%/นัด
+      starrain : 0.18,   // 18% รวม ÷ 8 นัด  = 2.25%/นัด
+      tornado  : 0.20,   // 20% รวม ÷ 6 นัด  = 3.3%/นัด
+      thunder  : 0.18,   // 1 นัด homing
+      bigbomb  : 0.22,   // 1 hit area
+      laser    : 0.20,   // กระจาย 120 frame
+      wave     : 0.20,   // 1 hit circle
+    };
+    const bulletCount = { flame:12, starrain:8, tornado:6 };
+    const pct   = totalPct[id] || 0.18;
+    const count = bulletCount[id] || 1;
+    return Math.round(this.boss.maxHp * pct / count);
+  }
 
   handleCollisions() {
     const pR  = this.player.getRect();
@@ -308,7 +346,11 @@ class Game {
         const b = this.bullets[bi];
         if (!b.alive) continue;
         if (this._overlap(b.getRect(), bossR)) {
-          b.alive = false; this.boss.hp -= 20; this._checkBossDead();
+          b.alive = false;
+          if (this.bossBarrierTimer <= 0) {
+            this.boss.hp -= 20; this._checkBossDead();
+          }
+          // ถ้า barrier active: กระสุนดูดซับแต่ไม่ damage
         }
       }
       for (let bi = this.bbullets.length - 1; bi >= 0; bi--) {
@@ -319,7 +361,9 @@ class Game {
         // Laser & Wave: ต่อเนื่อง ไม่ destroy ตัวเอง
         if (b instanceof SpecialLaser) {
           if (this._overlap(r, bossR)) {
-            this.boss.hp -= b.cfg.damage; this._checkBossDead();
+            if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;  // สลาย barrier
+            const laserDmgPerFrame = Math.ceil(this._specialDmg('laser') / b.cfg.duration);
+            this.boss.hp -= laserDmgPerFrame; this._checkBossDead();
           }
         } else if (b instanceof SpecialWave) {
           // circle vs rect — ใช้ distance จากจุดกึ่งกลางบอส
@@ -328,25 +372,30 @@ class Game {
           if (dist < b.r + Math.max(bossR.w, bossR.h)/2) {
             if (!b._bossHit) {  // โดนครั้งเดียวต่อ wave
               b._bossHit = true;
-              this.boss.hp -= b.cfg.damage; this._checkBossDead();
+              if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
+              this.boss.hp -= this._specialDmg('wave'); this._checkBossDead();
             }
           }
         } else if (b instanceof SpecialBigBomb) {
-          // BigBomb: ตอน explode โดนได้ตลอด duration ไม่ destroy ตัวเอง
-          // ตอน fly โดนแล้วก็ยังไม่ destroy (รอระเบิด)
           if (this._overlap(r, bossR)) {
             if (b._phase === 'fly') {
-              // accelerate fuse — ระเบิดทันที
               b._phase = 'explode'; b._expT = 0;
+              if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
             } else if (b._phase === 'explode' && !b._bossHit) {
               b._bossHit = true;
-              this.boss.hp -= b.cfg.damage; this._checkBossDead();
+              if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
+              this.boss.hp -= this._specialDmg('bigbomb'); this._checkBossDead();
             }
           }
+        } else if (b instanceof SpecialBarrier) {
+          // ไม่โจมตีบอส
         } else {
-          // Flame, Thunder, Tornado, Star — destroy on hit
+          // Flame, Thunder, Tornado, Star — destroy on hit, สลาย barrier
           if (this._overlap(r, bossR)) {
-            b.alive = false; this.boss.hp -= b.cfg ? b.cfg.damage * 3 : 250; this._checkBossDead();
+            b.alive = false;
+            if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
+            this.boss.hp -= this._specialDmg(b.cfg ? b.cfg.id : 'flame');
+            this._checkBossDead();
           }
         }
       }
@@ -374,10 +423,16 @@ class Game {
       }
     }
 
-    if (playerHit) {
+    if (playerHit && this.playerInvTimer <= 0) {
       this._play('hit');
-      if (this.player.shieldHp > 0) this.player.shieldHp -= 20;
-      else this.player.hp -= 10;
+      if (this.player.shieldHp > 0) {
+        // มี shield: ลด shieldHp ไม่กระพริบ ไม่ invincible
+        this.player.shieldHp -= 20;
+      } else {
+        // ไม่มี shield: ลด HP และกระพริบ 1 วิ
+        this.playerInvTimer = 60;
+        this.player.hp -= 10;
+      }
       if (this.player.hp <= 0) {
         this._play('explode'); this.state = STATE.GAME_OVER;
         this.gameTimerActive = false; this._stopBGM();
@@ -508,11 +563,17 @@ class Game {
     if     (this.state===STATE.INTRO)      { this.updateIntro(); }
     else if(this.state===STATE.PLAYING)    {
       this.spawnTimer++;
-      if(this.spawnTimer>=60){ this.enemies.push(new Enemy(this.images)); this.spawnTimer=0; }
-      if(this.killed>=33){ this.state=STATE.BOSS_FIGHT; this._addBossScene(); }
+      if (this.spawnTimer >= SPAWN_INTERVAL) {
+        this.spawnTimer = 0;
+        const toSpawn = Math.min(SPAWN_PER_WAVE, SPAWN_TOTAL - this.spawnCount);
+        for (let i = 0; i < toSpawn; i++) this.enemies.push(new Enemy(this.images));
+        this.spawnCount += toSpawn;
+        if (this.spawnCount >= SPAWN_TOTAL) { this.state = STATE.BOSS_FIGHT; this._addBossScene(); }
+      }
       this.player.update(this.keys);
     }
     else if(this.state===STATE.BOSS_FIGHT){
+      if (this.bossBarrierTimer > 0) this.bossBarrierTimer--;
       this.spawnTimer++;
       if(this.spawnTimer>=90){ this.enemies.push(new Enemy(this.images)); this.spawnTimer=0; }
       if(this.boss.alive&&this.boss.update()) this.shootBoss();
@@ -526,6 +587,7 @@ class Game {
     }
 
     if (this.gameTimerActive) this.gameTimer++;
+    if (this.playerInvTimer > 0) this.playerInvTimer--;
 
     this.enemies  = this.enemies .filter(o=>{o.update();return o.alive;});
     this.bullets  = this.bullets .filter(o=>{o.update();return o.alive;});
@@ -566,19 +628,30 @@ class Game {
     this.bullets .forEach(o=>o.draw(ctx));
     this.bbullets.forEach(o=>o.draw(ctx));
     this.ebullets.forEach(o=>o.draw(ctx));
-    this.player.draw(ctx);
+    // Player blink ตอน invincible
+    if (this.playerInvTimer <= 0 || Math.floor(this.playerInvTimer / 6) % 2 === 0) {
+      this.player.draw(ctx);
+    }
 
     ctx.restore();
 
     this._drawHUD();
     if(this.state===STATE.BOSS_FIGHT&&this.boss.alive) this._drawBossHP();
+    if(this.state===STATE.BOSS_FIGHT&&this.boss.alive&&this.bossBarrierTimer>0) this._drawBossBarrier();
 
-    // Joypad only when not in ranking
-    if (!this.rankingScreen.visible) this.joypad.draw(ctx, this.player.specials);
+    // Joypad — ซ่อนตอน GAME_OVER (จะวาดทีหลังหลัง overlay)
+    if (!this.rankingScreen.visible && this.state !== STATE.GAME_OVER) {
+      this.joypad.draw(ctx, this.player.specials);
+    }
 
     if(this.state===STATE.INTRO)     this._drawIntroCaption();
     if(this.state===STATE.VICTORY)   this._drawVictory();
     if(this.state===STATE.GAME_OVER) this._drawGameOver();
+
+    // Game Over: วาด joypad หลัง overlay เพื่อไม่ให้ถูกทับ
+    if (this.state === STATE.GAME_OVER && this.gameOverReady) {
+      this.joypad.draw(ctx, this.player.specials);
+    }
 
     // Ranking screen drawn on top
     this.rankingScreen.draw();
@@ -743,6 +816,32 @@ class Game {
       ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='16px Arial'; ctx.textAlign='center';
       ctx.fillText('Tap SHOOT to Play Again', WIDTH/2, midY+130);
     }
+  }
+
+  _drawBossBarrier(){
+    const ctx = this.ctx;
+    const r = this.boss.getRect();
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.008);
+    const fade  = Math.min(1, this.bossBarrierTimer / 30);
+    ctx.save();
+    ctx.globalAlpha = fade * (0.5 + 0.3 * pulse);
+    // hexagon-like shield glow
+    ctx.strokeStyle = `rgba(80,200,255,${0.8 + 0.2*pulse})`;
+    ctx.lineWidth   = 3 + pulse * 2;
+    ctx.shadowColor = 'rgba(0,180,255,0.9)';
+    ctx.shadowBlur  = 20 + pulse * 10;
+    const cx = r.x + r.w/2, cy = r.y + r.h/2;
+    const rad = Math.max(r.w, r.h) * 0.65;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i/6)*Math.PI*2 - Math.PI/6;
+      i===0 ? ctx.moveTo(cx+rad*Math.cos(a), cy+rad*Math.sin(a))
+            : ctx.lineTo(cx+rad*Math.cos(a), cy+rad*Math.sin(a));
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = `rgba(0,150,255,${0.08 + 0.05*pulse})`;
+    ctx.fill();
+    ctx.restore();
   }
 
   _drawGameOver(){
