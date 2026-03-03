@@ -23,7 +23,7 @@ const COL = {
   HP_COL : 'rgb(220,40,60)',
 };
 
-const PLAYER_SPEED     = 7;
+const PLAYER_SPEED     = 4;
 const BULLET_SPEED_VAL = 7; //12
 const SPECIAL_SPEED    = 9;
 const ITEM_SPEED       = 5;
@@ -49,9 +49,9 @@ const ACTIVE_SPECIAL = 'starrain';
 // ─────────────────────────────────────────────────────
 //  🎮 ENEMY SPAWN CONFIG
 // ─────────────────────────────────────────────────────
-const SPAWN_INTERVAL   = 80;   // frames ระหว่าง wave
-const SPAWN_PER_WAVE   = 5;    // enemy โผล่พร้อมกันต่อ wave
-const SPAWN_TOTAL      = 20;   // enemy ทั้งหมดก่อนเจอบอส
+const SPAWN_INTERVAL   = 120;   // frames ระหว่าง wave
+const SPAWN_PER_WAVE   = 3;    // enemy โผล่พร้อมกันต่อ wave
+const SPAWN_TOTAL      = 50;   // enemy ทั้งหมดก่อนเจอบอส
 
 // ─────────────────────────────────────────────────────
 //  🛡️ BOSS BARRIER CONFIG
