@@ -74,23 +74,58 @@ class Game {
     if (!this._bgmPending) return;
     this._bgmPending = false;
     this.sounds.bgm.play().catch(() => {});
+    // init AudioContext หลัง user gesture (iOS ต้องการ)
+    this._initAudioCtx().catch(() => {});
   }
   _stopBGM() {
     if (!this.sounds.bgm) return;
     this.sounds.bgm.pause(); this.sounds.bgm.currentTime=0;
   }
+  // ── AudioContext SFX engine (iOS-safe) ──────────────
+  async _initAudioCtx() {
+    if (this._ac) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this._ac = new AC();
+    this._buffers = {};
+    // decode SFX keys (ไม่รวม bgm ที่ใช้ HTMLAudioElement)
+    const sfxKeys = ['shoot','hit','item','bShoot','explode','win'];
+    await Promise.all(sfxKeys.map(async key => {
+      const el = this.sounds[key];
+      if (!el) return;
+      try {
+        const res  = await fetch(el.src);
+        const ab   = await res.arrayBuffer();
+        this._buffers[key] = await this._ac.decodeAudioData(ab);
+      } catch(e) { /* ไม่มีไฟล์ หรือ CORS → skip */ }
+    }));
+  }
+
   _play(key) {
+    if (key === 'bgm') return;  // BGM ใช้ HTMLAudioElement
+    // ถ้า AudioContext พร้อมและมี buffer → ใช้ Web Audio (iOS-safe)
+    if (this._ac && this._buffers && this._buffers[key]) {
+      if (this._ac.state === 'suspended') this._ac.resume();
+      const src = this._ac.createBufferSource();
+      src.buffer = this._buffers[key];
+      const gain = this._ac.createGain();
+      gain.gain.value = 0.6;
+      src.connect(gain); gain.connect(this._ac.destination);
+      src.start(0);
+      return;
+    }
+    // fallback: HTMLAudioElement (desktop / ยังไม่ได้ init)
     const s = this.sounds[key]; if (!s) return;
-    // Audio pool: reuse existing Audio ถ้า paused อยู่ หรือ clone สูงสุด 4 ตัว
     if (!this._audioPool) this._audioPool = {};
-    if (!this._audioPool[key]) this._audioPool[key] = [];
+    if (!this._audioPool[key]) this._audioPool[key] = [s];
     const pool = this._audioPool[key];
     let node = pool.find(n => n.paused || n.ended);
     if (!node) {
-      if (pool.length < 4) { node = s.cloneNode(); node.volume = 0.6; pool.push(node); }
-      else { node = pool[0]; }  // reuse oldest
+      if (pool.length < 3) { node = s.cloneNode(); node.volume = 0.6; pool.push(node); }
+      else node = pool[0];
     }
-    node.currentTime = 0;
+    if (!node.paused) { node.pause(); node.currentTime = 0; }
+    else node.currentTime = 0;
     node.play().catch(() => {});
   }
 
@@ -203,6 +238,7 @@ class Game {
     this.introPhase  = 0;
     this.state       = STATE.INTRO;
     this.specialType = ACTIVE_SPECIAL;
+    this._shootCd = 0;
 
     this._playBGM();
   }
@@ -225,6 +261,9 @@ class Game {
 
   // ── Shooting ──────────────────────────────────────
   shootPlayer() {
+    if (!this._shootCd) this._shootCd = 0;
+    if (this._shootCd > 0) { this._shootCd--; return; }
+    this._shootCd = 6;  // cooldown 6 frame = max 10 shots/วิ
     this._play('shoot');
     const cx=this.player.cx, y=this.player.top, lv=this.player.weaponLevel, spd=BULLET_SPEED_VAL;
     const add=(x,vx,vy)=>{ this.bullets.push(new Bullet(x,y,vx,vy??-spd,this.images)); };
