@@ -305,12 +305,12 @@ class Game {
     // % HP บอส *ต่อ 1 ครั้งกด* (รวมทุกนัดในชุด)
     // Flame=12นัด, Tornado=6นัด, Star=8นัด → หารจำนวนนัดแล้ว
     const totalPct = {
-      flame    : 0.18,   // 18% รวม ÷ 12 นัด = 1.5%/นัด
+      flame    : 0.55,   // 18% รวม ÷ 12 นัด = 1.5%/นัด
       starrain : 0.18,   // 18% รวม ÷ 8 นัด  = 2.25%/นัด
-      tornado  : 0.20,   // 20% รวม ÷ 6 นัด  = 3.3%/นัด
+      tornado  : 0.30,   // 20% รวม ÷ 6 นัด  = 3.3%/นัด
       thunder  : 0.18,   // 1 นัด homing
       bigbomb  : 0.22,   // 1 hit area
-      laser    : 0.20,   // กระจาย 120 frame
+      laser    : 0.22,   // กระจาย 120 frame
       wave     : 0.20,   // 1 hit circle
     };
     const bulletCount = { flame:12, starrain:8, tornado:6 };
@@ -725,12 +725,18 @@ class Game {
       this._rr(ctx,WIDTH-175+i*14,30,10,12,2,true,false);
     }
 
-    // Bomb dots
+    // Special — แสดงชื่อเต็ม + dots
     const _spCfg = SPECIALS_CONFIG.find(c=>c.id===this.specialType);
-    ctx.fillStyle=(_spCfg?_spCfg.color:'rgb(255,140,0)'); ctx.font='bold 11px Courier New'; ctx.textAlign='left';
-    ctx.fillText(_spCfg?_spCfg.name.slice(0,6):'SPEC',WIDTH-90,8);
-    for(let i=0;i<Math.min(this.player.specials,9);i++){
-      const cx=WIDTH-85+i*14;
+    const _spColor = _spCfg ? _spCfg.color : 'rgb(255,140,0)';
+    // ชื่อ special แบบเต็ม บน row เดียวกับ score (บรรทัดบน)
+    ctx.fillStyle = _spColor;
+    ctx.font = 'bold 10px Courier New';
+    ctx.textAlign = 'right';
+    ctx.fillText(_spCfg ? _spCfg.hud : 'SPECIAL', WIDTH-8, 8);
+    // dots ใต้ชื่อ (แถวล่าง) จัดชิดขวา
+    const _dots = Math.min(this.player.specials, 9);
+    for(let i=0;i<_dots;i++){
+      const cx = WIDTH - 8 - (_dots-1-i)*14;
       ctx.fillStyle='rgb(255,120,0)';
       ctx.beginPath(); ctx.arc(cx,36,5,0,Math.PI*2); ctx.fill();
       ctx.fillStyle='rgb(255,220,80)';
