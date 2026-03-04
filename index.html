@@ -177,16 +177,11 @@
     let game = null;   // ประกาศก่อน unlockAudio ใช้ได้
 
     function unlockAudio() {
-      // resume Web Audio API context ถ้ามี
-      if (window.AudioContext || window.webkitAudioContext) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!unlockAudio._ctx) {
-          unlockAudio._ctx = new AC();
-          unlockAudio._ctx.resume().catch(() => {});
-        }
-      }
-      // resume BGM ถ้า pending
+      // resume BGM + init AudioContext SFX buffers (iOS ต้องการ user gesture)
       if (game && game._resumeBGMIfPending) game._resumeBGMIfPending();
+      // ลบ listener หลังแตะครั้งแรก (ไม่ต้องเรียกซ้ำ)
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('mousedown',  unlockAudio);
     }
     document.addEventListener('touchstart', unlockAudio, { passive: true });
     document.addEventListener('mousedown',  unlockAudio);
