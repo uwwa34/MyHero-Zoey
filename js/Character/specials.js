@@ -9,6 +9,7 @@
 const SPECIALS_CONFIG = [
   {
     id          : 'flame',
+    hud         : 'FLAME',
     name        : '🔥 Flame Burst',
     desc        : 'ยิง 12 นัดกระจาย 180°',
     imgKey      : 'specialFlame',
@@ -21,6 +22,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'thunder',
+    hud         : 'THUNDER',
     name        : '⚡ Thunder Strike',
     desc        : 'สายฟ้าล็อคเป้าศัตรูใกล้สุด',
     imgKey      : 'specialThunder',
@@ -32,6 +34,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'tornado',
+    hud         : 'TORNADO',
     name        : '🌀 Tornado',
     desc        : 'bullet วนรอบตัวแล้วพุ่งออก',
     imgKey      : 'specialTornado',
@@ -45,6 +48,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'bigbomb',
+    hud         : 'BIG BOMB',
     name        : '💣 Big Bomb',
     desc        : 'ระเบิดพื้นที่วงกว้าง',
     imgKey      : 'specialBigbomb',
@@ -57,6 +61,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'starrain',
+    hud         : 'STAR RAIN',
     name        : '🌟 Star Rain',
     desc        : 'ดาวตก 8 ดวงจากด้านบน',
     imgKey      : 'specialStarrain',
@@ -69,6 +74,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'barrier',
+    hud         : 'BARRIER',
     name        : '🛡️ Barrier',
     desc        : 'กำแพงดูดซับกระสุนบอส 5 วิ',
     imgKey      : 'specialBarrier',
@@ -81,6 +87,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'laser',
+    hud         : 'LASER',
     name        : '🎯 Laser',
     desc        : 'เลเซอร์ยาวทะลุทุกอย่าง',
     imgKey      : 'specialLaser',
@@ -92,6 +99,7 @@ const SPECIALS_CONFIG = [
   },
   {
     id          : 'wave',
+    hud         : 'WAVE',
     name        : '🌊 Wave Bomb',
     desc        : 'คลื่นระเบิดแผ่รอบตัว',
     imgKey      : 'specialWave',
