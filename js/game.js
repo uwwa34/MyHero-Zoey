@@ -261,9 +261,8 @@ class Game {
 
   // ── Shooting ──────────────────────────────────────
   shootPlayer() {
-    if (!this._shootCd) this._shootCd = 0;
-    if (this._shootCd > 0) { this._shootCd--; return; }
-    this._shootCd = 6;  // cooldown 6 frame = max 10 shots/วิ
+    if (this._shootCd > 0) return;  // ยังใน cooldown
+    this._shootCd = 3;  // reset cooldown (3 frame = ~20 shots/วิ)
     this._play('shoot');
     const cx=this.player.cx, y=this.player.top, lv=this.player.weaponLevel, spd=BULLET_SPEED_VAL;
     const add=(x,vx,vy)=>{ this.bullets.push(new Bullet(x,y,vx,vy??-spd,this.images)); };
@@ -627,6 +626,7 @@ class Game {
 
     if (this.gameTimerActive) this.gameTimer++;
     if (this.playerInvTimer > 0) this.playerInvTimer--;
+    if (this._shootCd > 0) this._shootCd--;
 
     this.enemies  = this.enemies .filter(o=>{o.update();return o.alive;});
     this.bullets  = this.bullets .filter(o=>{o.update();return o.alive;});
