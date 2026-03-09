@@ -51,6 +51,7 @@ class Game {
 
     this._bindRankingTap(canvas);
     this._bindKeys();
+    this._pageActive = !document.hidden;  // BGM flag
     this._playBGM();
   }
 
@@ -59,27 +60,43 @@ class Game {
     if (!this.sounds.bgm) return;
     this.sounds.bgm.loop   = true;
     this.sounds.bgm.volume = 0.4;
-    // ถ้า AudioContext ยัง suspended (iOS ก่อน interact) → เก็บ pending ไว้
+    // เล่นเฉพาะตอน page active เท่านั้น
+    if (!this._pageActive) { this._bgmPending = true; return; }
     const p = this.sounds.bgm.play();
     if (p !== undefined) {
-      p.catch(() => {
-        // autoplay blocked → mark pending, จะ play เมื่อ user interact
-        this._bgmPending = true;
-      });
+      p.catch(() => { this._bgmPending = true; });
     }
   }
 
-  // เรียกหลัง user interaction ครั้งแรก เพื่อ resume pending BGM
+  // เรียกหลัง user interaction ครั้งแรก
   _resumeBGMIfPending() {
     if (!this._bgmPending) return;
+    if (!this._pageActive) return;  // page ไม่ active → ไม่เล่น
     this._bgmPending = false;
     this.sounds.bgm.play().catch(() => {});
-    // init AudioContext หลัง user gesture (iOS ต้องการ)
     this._initAudioCtx().catch(() => {});
   }
+
+  // เรียกจาก index.html เมื่อ page ซ่อน
+  onPageHide() {
+    this._pageActive = false;
+    if (this.sounds.bgm && !this.sounds.bgm.paused) {
+      this.sounds.bgm.pause();
+    }
+  }
+
+  // เรียกจาก index.html เมื่อ page กลับมา
+  onPageShow() {
+    this._pageActive = true;
+    // resume BGM เฉพาะตอนเกม running และ BGM เคยเล่นแล้ว
+    if (this.sounds.bgm && this.running && this.sounds.bgm.currentTime > 0) {
+      this.sounds.bgm.play().catch(() => {});
+    }
+  }
+
   _stopBGM() {
     if (!this.sounds.bgm) return;
-    this.sounds.bgm.pause(); this.sounds.bgm.currentTime=0;
+    this.sounds.bgm.pause(); this.sounds.bgm.currentTime = 0;
   }
   // ── AudioContext SFX engine (iOS-safe) ──────────────
   async _initAudioCtx() {
@@ -305,12 +322,12 @@ class Game {
     // % HP บอส *ต่อ 1 ครั้งกด* (รวมทุกนัดในชุด)
     // Flame=12นัด, Tornado=6นัด, Star=8นัด → หารจำนวนนัดแล้ว
     const totalPct = {
-      flame    : 0.55,   // 18% รวม ÷ 12 นัด = 1.5%/นัด
-      starrain : 0.18,   // 18% รวม ÷ 8 นัด  = 2.25%/นัด
-      tornado  : 0.30,   // 20% รวม ÷ 6 นัด  = 3.3%/นัด
-      thunder  : 0.18,   // 1 นัด homing
+      flame    : 0.25,   // 25% รวม ÷ 12 นัด = 2.1%/นัด
+      starrain : 0.20,   // 20% รวม ÷ 8 นัด  = 2.5%/นัด
+      tornado  : 0.25,   // 25% รวม ÷ 6 นัด  = 4.2%/นัด
+      thunder  : 0.20,   // 1 นัด homing
       bigbomb  : 0.22,   // 1 hit area
-      laser    : 0.22,   // กระจาย 120 frame
+      laser    : 0.20,   // กระจาย 120 frame
       wave     : 0.20,   // 1 hit circle
     };
     const bulletCount = { flame:12, starrain:8, tornado:6 };
@@ -427,12 +444,20 @@ class Game {
           }
         } else if (b instanceof SpecialBarrier) {
           // ไม่โจมตีบอส
+        } else if (b instanceof SpecialFlameBullet || b instanceof SpecialTornadoBullet) {
+          // Flame & Tornado: pass-through บอส — แต่ละนัด damage แยกกัน ไม่ destroy ทันที
+          if (this._overlap(r, bossR) && !b._bossHit) {
+            b._bossHit = true;  // โดนบอสได้แค่ครั้งเดียวต่อนัด
+            if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
+            this.boss.hp -= this._specialDmg(b.cfg ? b.cfg.id : 'flame');
+            this._checkBossDead();
+          }
         } else {
-          // Flame, Thunder, Tornado, Star — destroy on hit, สลาย barrier
+          // Thunder, Star — destroy on hit
           if (this._overlap(r, bossR)) {
             b.alive = false;
             if (this.bossBarrierTimer > 0) this.bossBarrierTimer = 0;
-            this.boss.hp -= this._specialDmg(b.cfg ? b.cfg.id : 'flame');
+            this.boss.hp -= this._specialDmg(b.cfg ? b.cfg.id : 'thunder');
             this._checkBossDead();
           }
         }
