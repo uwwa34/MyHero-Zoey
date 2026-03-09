@@ -186,6 +186,18 @@
     document.addEventListener('touchstart', unlockAudio, { passive: true });
     document.addEventListener('mousedown',  unlockAudio);
 
+    // ── BGM — ส่ง signal ให้ game จัดการผ่าน _pageActive ──────
+    function onHide() { if (game) game.onPageHide(); }
+    function onShow() { if (game) game.onPageShow(); }
+
+    document.addEventListener('visibilitychange', () => {
+      document.hidden ? onHide() : onShow();
+    });
+    window.addEventListener('pagehide', onHide);
+    window.addEventListener('pageshow', onShow);
+    window.addEventListener('freeze',   onHide);
+    window.addEventListener('resume',   onShow);
+
     game = new Game(canvas, images, sounds);
     game.start();
   }
