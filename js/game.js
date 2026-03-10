@@ -684,12 +684,9 @@ class Game {
       const img = this.images.bg;
       const imgH = img.naturalHeight || img.height;
       const imgW = img.naturalWidth  || img.width;
-      // sy: ตำแหน่ง crop ในรูป (วิ่งจากล่างขึ้นบน)
-      // _bgY นับขึ้นเรื่อยๆ → mod imgH เพื่อ loop
-      const maxScroll = Math.max(0, imgH - GAME_H);  // พื้นที่เลื่อนได้
-      const sy = maxScroll > 0
-        ? maxScroll - (this._bgY % (maxScroll + 1))  // เลื่อนขึ้น: เริ่มล่าง→บน
-        : 0;
+      // sy: crop จากล่างขึ้นบน — _bgY=0 → เห็นส่วนล่างสุด, _bgY=maxScroll → เห็นส่วนบนสุด
+      const maxScroll = Math.max(0, imgH - GAME_H);
+      const sy = maxScroll - Math.min(this._bgY, maxScroll);
       ctx.drawImage(img, 0, sy, imgW, GAME_H, 0, HUD_H, WIDTH, GAME_H);
     } else {
       ctx.fillStyle='rgb(5,8,20)'; ctx.fillRect(0,HUD_H,WIDTH,GAME_H);
