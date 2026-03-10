@@ -23,10 +23,10 @@ const COL = {
   HP_COL : 'rgb(220,40,60)',
 };
 
-const PLAYER_SPEED     = 4;
-const BULLET_SPEED_VAL = 7; //12
+const PLAYER_SPEED     = 4; //7
+const BULLET_SPEED_VAL = 6; //12
 const SPECIAL_SPEED    = 9;
-const ITEM_SPEED       = 5;
+const ITEM_SPEED       = 3;
 const START_SPECIALS   = 2;
 const MAX_SPECIALS     = 9;
 const MAX_WEAPON_LEVEL = 4;   // Lv1=1shot Lv2=3shot Lv3=6shot Lv4=spread full
@@ -49,9 +49,9 @@ const ACTIVE_SPECIAL = 'starrain';
 // ─────────────────────────────────────────────────────
 //  🎮 ENEMY SPAWN CONFIG
 // ─────────────────────────────────────────────────────
-const SPAWN_INTERVAL   = 120;   // frames ระหว่าง wave
+const SPAWN_INTERVAL   = 80;   // frames ระหว่าง wave
 const SPAWN_PER_WAVE   = 3;    // enemy โผล่พร้อมกันต่อ wave
-const SPAWN_TOTAL      = 50;   // enemy ทั้งหมดก่อนเจอบอส
+const SPAWN_TOTAL      = 65;   // enemy ทั้งหมดก่อนเจอบอส
 
 // ─────────────────────────────────────────────────────
 //  🛡️ BOSS BARRIER CONFIG
@@ -122,3 +122,22 @@ function removeBackground(img, tolerance = 30) {
   }
   return oc;
 }
+
+// ─────────────────────────────────────────────────────
+//  🌄 BACKGROUND SCROLL CONFIG
+//  ใช้รูป background.jpg ที่สูงกว่า GAME_H (508px)
+//  แนะนำให้รูปสูงอย่างน้อย 2× = 1016px ขึ้นไป
+//
+//  BG_SCROLL_SPEED: pixels ที่เลื่อนต่อ frame (60fps)
+//  ──────────────────────────────────────────────────
+//  ค่า  | ความเร็ว     | ใน 50 วิ เลื่อนได้
+//  ──────────────────────────────────────────────────
+//   1   | ช้ามาก       | 3,000 px
+//   2   | ช้า          | 6,000 px  ← แนะนำ (รูป ~1500px)
+//   3   | ปานกลาง      | 9,000 px  ← แนะนำ (รูป ~2000px)
+//   4   | เร็ว         | 12,000 px
+//   5   | เร็วมาก      | 15,000 px
+//  ──────────────────────────────────────────────────
+//  เลื่อนเฉพาะ PLAYING state — หยุดอัตโนมัติตอน BOSS_FIGHT
+// ─────────────────────────────────────────────────────
+const BG_SCROLL_SPEED = 0.6;

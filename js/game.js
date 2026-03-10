@@ -52,6 +52,7 @@ class Game {
     this._bindRankingTap(canvas);
     this._bindKeys();
     this._pageActive = !document.hidden;  // BGM flag
+    this._bgY = 0;  // background scroll position
     this._playBGM();
   }
 
@@ -256,6 +257,7 @@ class Game {
     this.state       = STATE.INTRO;
     this.specialType = ACTIVE_SPECIAL;
     this._shootCd = 0;
+    this._bgY = 0;
 
     this._playBGM();
   }
@@ -322,12 +324,12 @@ class Game {
     // % HP บอส *ต่อ 1 ครั้งกด* (รวมทุกนัดในชุด)
     // Flame=12นัด, Tornado=6นัด, Star=8นัด → หารจำนวนนัดแล้ว
     const totalPct = {
-      flame    : 0.25,   // 25% รวม ÷ 12 นัด = 2.1%/นัด
-      starrain : 0.20,   // 20% รวม ÷ 8 นัด  = 2.5%/นัด
-      tornado  : 0.25,   // 25% รวม ÷ 6 นัด  = 4.2%/นัด
-      thunder  : 0.20,   // 1 นัด homing
+      flame    : 0.55,   // 25% รวม ÷ 12 นัด = 2.1%/นัด
+      starrain : 0.18,   // 20% รวม ÷ 8 นัด  = 2.5%/นัด
+      tornado  : 0.30,   // 25% รวม ÷ 6 นัด  = 4.2%/นัด
+      thunder  : 0.18,   // 1 นัด homing
       bigbomb  : 0.22,   // 1 hit area
-      laser    : 0.20,   // กระจาย 120 frame
+      laser    : 0.22,   // กระจาย 120 frame
       wave     : 0.20,   // 1 hit circle
     };
     const bulletCount = { flame:12, starrain:8, tornado:6 };
@@ -625,6 +627,15 @@ class Game {
 
     if     (this.state===STATE.INTRO)      { this.updateIntro(); }
     else if(this.state===STATE.PLAYING)    {
+      // scroll background — เลื่อนเฉพาะ PLAYING, BOSS_FIGHT หยุด
+      // หยุดเมื่อสุดรูป
+      if (this.images.bg) {
+        const imgH = this.images.bg.naturalHeight || this.images.bg.height;
+        const maxScroll = Math.max(0, imgH - GAME_H);
+        if (this._bgY < maxScroll) {
+          this._bgY = Math.min(this._bgY + BG_SCROLL_SPEED, maxScroll);
+        }
+      }
       this.spawnTimer++;
       if (this.spawnTimer >= SPAWN_INTERVAL) {
         this.spawnTimer = 0;
@@ -667,10 +678,22 @@ class Game {
   draw(){
     const ctx=this.ctx;
 
-    // Background
+    // Background — vertical scroll (รูปสูง 2× GAME_H)
     ctx.fillStyle=COL.DARK; ctx.fillRect(0,0,WIDTH,HEIGHT);
-    if(this.images.bg) ctx.drawImage(this.images.bg,0,HUD_H,WIDTH,GAME_H);
-    else { ctx.fillStyle='rgb(5,8,20)'; ctx.fillRect(0,HUD_H,WIDTH,GAME_H); }
+    if(this.images.bg) {
+      const img = this.images.bg;
+      const imgH = img.naturalHeight || img.height;
+      const imgW = img.naturalWidth  || img.width;
+      // sy: ตำแหน่ง crop ในรูป (วิ่งจากล่างขึ้นบน)
+      // _bgY นับขึ้นเรื่อยๆ → mod imgH เพื่อ loop
+      const maxScroll = Math.max(0, imgH - GAME_H);  // พื้นที่เลื่อนได้
+      const sy = maxScroll > 0
+        ? maxScroll - (this._bgY % (maxScroll + 1))  // เลื่อนขึ้น: เริ่มล่าง→บน
+        : 0;
+      ctx.drawImage(img, 0, sy, imgW, GAME_H, 0, HUD_H, WIDTH, GAME_H);
+    } else {
+      ctx.fillStyle='rgb(5,8,20)'; ctx.fillRect(0,HUD_H,WIDTH,GAME_H);
+    }
 
     // Clip game zone
     ctx.save();
