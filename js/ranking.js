@@ -134,7 +134,7 @@ class RankingScreen {
     if (this._cursorT % 30 === 0) this._cursor = !this._cursor;
 
     // dark overlay
-    ctx.fillStyle = 'rgba(0,0,0,0.92)';
+    ctx.fillStyle = 'rgba(208,234,245,0.97)';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     if (this.mode === 'entry') this._drawEntry(ctx);
@@ -159,9 +159,9 @@ class RankingScreen {
     // Name input box
     const bx = WIDTH/2-130, by=180, bw=260, bh=48;
     ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
-    ctx.fillStyle   = 'rgba(0,30,40,0.8)';
+    ctx.fillStyle   = 'rgba(255,255,255,0.6)';
     this._rr(ctx,bx,by,bw,bh,8,true,true);
-    ctx.fillStyle = '#fff'; ctx.font='bold 26px Courier New';
+    ctx.fillStyle = 'rgb(26,58,92)'; ctx.font='bold 26px Courier New';
     const nameDisplay = this.playerName + (this._cursor ? '|' : ' ');
     ctx.fillText(nameDisplay, WIDTH/2, by+bh/2);
 
@@ -169,7 +169,7 @@ class RankingScreen {
     this._drawVKB(ctx);
 
     // OK button
-    ctx.fillStyle   = 'rgba(0,200,230,0.2)';
+    ctx.fillStyle   = 'rgba(91,163,201,0.2)';
     ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
     this._rr(ctx, WIDTH/2-60, 440, 120, 40, 8, true, true);
     ctx.fillStyle = COL.CYAN; ctx.font='bold 18px Arial';
@@ -188,11 +188,11 @@ class RankingScreen {
       const rowX = (WIDTH - (keyW+keyGap)*row.length)/2;
       row.forEach((k, ki) => {
         const kx=rowX+ki*(keyW+keyGap), ky=startY+ri*(keyH+keyGap);
-        ctx.fillStyle   = k==='⌫' ? 'rgba(220,40,60,0.3)' : 'rgba(0,40,60,0.7)';
-        ctx.strokeStyle = k==='⌫' ? 'rgba(220,40,60,0.7)' : 'rgba(0,150,180,0.5)';
+        ctx.fillStyle   = k==='⌫' ? 'rgba(224,122,138,0.3)' : 'rgba(91,163,201,0.15)';
+        ctx.strokeStyle = k==='⌫' ? 'rgba(224,122,138,0.8)' : 'rgba(91,163,201,0.6)';
         ctx.lineWidth   = 1;
         this._rr(ctx,kx,ky,keyW,keyH,4,true,true);
-        ctx.fillStyle = k==='⌫' ? '#ff8080' : '#ccc';
+        ctx.fillStyle = k==='⌫' ? 'rgb(224,122,138)' : 'rgb(45,106,159)';
         ctx.font = `${k==='⌫'?14:13}px Arial`;
         ctx.fillText(k, kx+keyW/2, ky+keyH/2);
       });
@@ -215,7 +215,7 @@ class RankingScreen {
 
       // row bg
       if (isMe) {
-        ctx.fillStyle = 'rgba(0,200,230,0.18)';
+        ctx.fillStyle = 'rgba(91,163,201,0.18)';
         this._rr(ctx,10,y,WIDTH-20,rowH-4,6,true,false);
         ctx.strokeStyle = COL.CYAN; ctx.lineWidth=1.5;
         this._rr(ctx,10,y,WIDTH-20,rowH-4,6,false,true);
@@ -228,7 +228,7 @@ class RankingScreen {
       ctx.fillText(`${i+1}.`, 20, y+rowH/2-2);
 
       // name
-      ctx.fillStyle = isMe ? COL.CYAN : '#ddd';
+      ctx.fillStyle = isMe ? COL.CYAN : 'rgb(45,106,159)';
       ctx.font = `${isMe?'bold ':''  }16px Courier New`;
       ctx.fillText(entry.name, 52, y+rowH/2-2);
 
@@ -238,18 +238,18 @@ class RankingScreen {
       ctx.fillText(String(entry.score).padStart(6,'0'), WIDTH-15, y+rowH/2-2);
 
       // date (small)
-      ctx.fillStyle='#555'; ctx.font='11px Arial'; ctx.textAlign='right';
+      ctx.fillStyle='rgb(150,180,200)'; ctx.font='11px Arial'; ctx.textAlign='right';
       ctx.fillText(entry.date||'', WIDTH-15, y+rowH-8);
     });
 
     if (list.length === 0) {
-      ctx.fillStyle='#555'; ctx.font='18px Arial'; ctx.textAlign='center';
+      ctx.fillStyle='rgb(150,180,200)'; ctx.font='18px Arial'; ctx.textAlign='center';
       ctx.fillText('No records yet', WIDTH/2, 200);
     }
 
     // Play Again button
     const by = HEIGHT - 70;
-    ctx.fillStyle   = 'rgba(0,200,230,0.2)';
+    ctx.fillStyle   = 'rgba(91,163,201,0.2)';
     ctx.strokeStyle = COL.CYAN; ctx.lineWidth=2;
     this._rr(ctx, WIDTH/2-100, by, 200, 48, 10, true, true);
     ctx.fillStyle=COL.CYAN; ctx.font='bold 20px Arial'; ctx.textAlign='center';

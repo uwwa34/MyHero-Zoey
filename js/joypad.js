@@ -90,9 +90,9 @@ class VirtualJoypad {
   // ── Draw ───────────────────────────────────────
   draw(ctx, bombsLeft) {
     // pad background
-    ctx.fillStyle = 'rgba(0,8,18,0.85)';
+    ctx.fillStyle = 'rgba(220,240,250,0.92)';
     ctx.fillRect(0, HEIGHT - PAD_H, WIDTH, PAD_H);
-    ctx.strokeStyle = 'rgba(0,160,200,0.35)';
+    ctx.strokeStyle = 'rgba(91,163,201,0.5)';
     ctx.lineWidth   = 1;
     ctx.beginPath();
     ctx.moveTo(0, HEIGHT - PAD_H);
@@ -100,10 +100,10 @@ class VirtualJoypad {
     ctx.stroke();
 
     const defs = [
-      { key: 'left',  label: '◀', sub: 'LEFT',            round: false, bCol: 'rgba(0,200,230,0.8)',  pCol: 'rgba(0,200,230,0.5)'  },
-      { key: 'right', label: '▶', sub: 'RIGHT',           round: false, bCol: 'rgba(0,200,230,0.8)',  pCol: 'rgba(0,200,230,0.5)'  },
-      { key: 'bomb',  label: 'B', sub: `SPEC ×${bombsLeft}`, round: true, bCol: 'rgba(255,140,0,0.8)', pCol: 'rgba(255,120,0,0.5)', disabled: bombsLeft <= 0 },
-      { key: 'shoot', label: 'A', sub: 'SHOOT',           round: true,  bCol: 'rgba(0,200,230,0.8)',  pCol: 'rgba(0,200,230,0.5)'  },
+      { key: 'left',  label: '◀', sub: 'LEFT',            round: false, bCol: 'rgba(91,163,201,0.9)', pCol: 'rgba(91,163,201,0.5)' },
+      { key: 'right', label: '▶', sub: 'RIGHT',           round: false, bCol: 'rgba(91,163,201,0.9)', pCol: 'rgba(91,163,201,0.5)' },
+      { key: 'bomb',  label: 'B', sub: `SPEC ×${bombsLeft}`, round: true, bCol: 'rgba(244,162,97,0.9)', pCol: 'rgba(244,162,97,0.5)', disabled: bombsLeft <= 0 },
+      { key: 'shoot', label: 'A', sub: 'SHOOT',           round: true,  bCol: 'rgba(91,163,201,0.9)', pCol: 'rgba(91,163,201,0.5)' },
     ];
 
     defs.forEach(d => {
@@ -116,7 +116,7 @@ class VirtualJoypad {
       this._roundRect(ctx, r.x, r.y, r.w, r.h, radius);
 
       if (d.disabled) {
-        ctx.strokeStyle = 'rgba(80,80,80,0.4)';
+        ctx.strokeStyle = 'rgba(180,200,215,0.5)';
         ctx.lineWidth   = 2;
         ctx.stroke();
       } else if (pressed) {
@@ -132,14 +132,14 @@ class VirtualJoypad {
       }
 
       // label
-      ctx.fillStyle    = d.disabled ? '#444' : (pressed ? '#fff' : d.bCol);
+      ctx.fillStyle    = d.disabled ? '#aac' : (pressed ? '#1a3a5c' : d.bCol);
       ctx.font         = 'bold 20px Arial';
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(d.label, r.x + r.w/2, r.y + r.h/2 - 5);
 
       // sub label
-      ctx.fillStyle    = d.disabled ? '#333' : 'rgba(100,150,170,0.9)';
+      ctx.fillStyle    = d.disabled ? '#aac' : 'rgba(45,106,159,0.85)';
       ctx.font         = '11px Arial';
       ctx.fillText(d.sub, r.x + r.w/2, r.y + r.h - 12);
       ctx.restore();

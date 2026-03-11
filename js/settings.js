@@ -12,15 +12,15 @@ const GAME_H = HEIGHT - HUD_H - PAD_H;   // 508
 const FPS = 60;
 
 const COL = {
-  WHITE  : '#ffffff',
-  BLACK  : '#000000',
-  RED    : 'rgb(220,40,60)',
-  GREEN  : 'rgb(0,255,0)',
-  CYAN   : 'rgb(0,220,240)',
-  YELLOW : 'rgb(255,230,0)',
-  PURPLE : 'rgb(153,51,255)',
-  DARK   : 'rgb(3,5,15)',
-  HP_COL : 'rgb(220,40,60)',
+  WHITE  : '#f0f8ff',
+  BLACK  : '#1a3a5c',
+  RED    : 'rgb(224,122,138)',   // ชมพู pastel
+  GREEN  : 'rgb(116,198,157)',   // เขียว pastel
+  CYAN   : 'rgb(91,163,201)',    // ฟ้า pastel accent
+  YELLOW : 'rgb(249,199,79)',    // เหลือง pastel
+  PURPLE : 'rgb(162,155,206)',   // ม่วง pastel
+  DARK   : 'rgb(208,234,245)',   // BG ฟ้าอ่อน
+  HP_COL : 'rgb(224,122,138)',   // ชมพู pastel
 };
 
 const PLAYER_SPEED     = 4; //7
