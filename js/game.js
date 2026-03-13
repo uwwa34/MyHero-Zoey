@@ -833,7 +833,7 @@ class Game {
       'รีบไปช่วยเพื่อนกันเถอะ!',                               // phase 3: บอสหนี
     ];
     // const cols=['#ffffff','rgb(255,200,0)','rgb(229,255,0)','rgb(0,220,240)'];
-    const cols=['#1a3a5c','#1a3a5c','#1a3a5c','rgb(91,163,201)'];
+    const cols=['#1a3a5c','#1a3a5c','#1a3a5c','#945bc9'];
     const capY=HUD_H+GAME_H-42;
     ctx.fillStyle='rgba(184,223,240,0.88)'; ctx.fillRect(0,capY,WIDTH,34);
     ctx.fillStyle=cols[this.introPhase]; ctx.font='bold 20px Arial';
