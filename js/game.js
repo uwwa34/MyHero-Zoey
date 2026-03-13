@@ -735,8 +735,8 @@ class Game {
   // ── HUD ───────────────────────────────────────────
   _drawHUD(){
     const ctx=this.ctx;
-    ctx.fillStyle='rgba(0,10,25,0.88)'; ctx.fillRect(0,0,WIDTH,HUD_H);
-    ctx.strokeStyle='rgba(0,160,200,0.3)'; ctx.lineWidth=1;
+    ctx.fillStyle='rgb(208,234,245)'; ctx.fillRect(0,0,WIDTH,HUD_H);
+    ctx.strokeStyle='rgba(91,163,201,0.4)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(0,HUD_H); ctx.lineTo(WIDTH,HUD_H); ctx.stroke();
 
     ctx.fillStyle=COL.CYAN; ctx.font='bold 13px Courier New';
@@ -744,20 +744,20 @@ class Game {
     ctx.fillText('HP',10,10);
 
     const tx=34,ty=14,tw=110,th=11;
-    ctx.fillStyle='rgb(60,0,0)'; this._rr(ctx,tx,ty,tw,th,3,true,false);
+    ctx.fillStyle='rgb(220,190,200)'; this._rr(ctx,tx,ty,tw,th,3,true,false);
     const hw=Math.round(tw*this.player.hp/100);
     if(hw>0){ctx.fillStyle=COL.HP_COL; this._rr(ctx,tx,ty,hw,th,3,true,false);}
-    ctx.strokeStyle='rgb(180,60,80)'; ctx.lineWidth=1; this._rr(ctx,tx,ty,tw,th,3,false,true);
+    ctx.strokeStyle='rgb(224,122,138)'; ctx.lineWidth=1; this._rr(ctx,tx,ty,tw,th,3,false,true);
 
-    ctx.fillStyle=COL.YELLOW; ctx.font='bold 13px Courier New';
+    ctx.fillStyle='#1a3a5c'; ctx.font='bold 13px Courier New';
     ctx.textAlign='center';
     ctx.fillText(String(this.player.score).padStart(6,'0'), WIDTH/2.165, 18); //WIDTH/2, 18);
 
     // Weapon pips
-    ctx.fillStyle='rgb(100,230,80)'; ctx.font='bold 12px Courier New'; ctx.textAlign='left';
+    ctx.fillStyle='rgb(45,106,159)'; ctx.font='bold 12px Courier New'; ctx.textAlign='left';
     ctx.fillText(`WPN Lv${this.player.weaponLevel}`, WIDTH-175, 8);
     for(let i=0;i<MAX_WEAPON_LEVEL;i++){
-      ctx.fillStyle=i<this.player.weaponLevel?'rgb(100,230,80)':'rgb(30,50,30)';
+      ctx.fillStyle=i<this.player.weaponLevel?'rgb(91,163,201)':'rgb(180,210,225)';
       this._rr(ctx,WIDTH-175+i*14,30,10,12,2,true,false);
     }
 
@@ -773,9 +773,9 @@ class Game {
     const _dots = Math.min(this.player.specials, 9);
     for(let i=0;i<_dots;i++){
       const cx = WIDTH - 8 - (_dots-1-i)*14;
-      ctx.fillStyle='rgb(255,120,0)';
+      ctx.fillStyle='rgb(244,162,97)';
       ctx.beginPath(); ctx.arc(cx,36,5,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgb(255,220,80)';
+      ctx.fillStyle='rgb(255,220,150)';
       ctx.beginPath(); ctx.arc(cx-1,33,2,0,Math.PI*2); ctx.fill();
     }
   }
@@ -884,10 +884,10 @@ class Game {
       ctx.beginPath(); ctx.moveTo(40,midY+74); ctx.lineTo(WIDTH-40,midY+74); ctx.stroke();
 
       // TOTAL
-      ctx.shadowColor='rgba(255,230,0,0.8)'; ctx.shadowBlur=10;
-      ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
+      ctx.shadowColor='rgba(45,106,159,0.5)'; ctx.shadowBlur=6;
+      ctx.fillStyle='rgba(45,106,159,0.85)'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
       ctx.fillText('TOTAL BONUS', 44, midY+92);
-      ctx.fillStyle=COL.YELLOW; ctx.font='bold 22px Courier New'; ctx.textAlign='right';
+      ctx.fillStyle='#1a3a5c'; ctx.font='bold 22px Courier New'; ctx.textAlign='right';
       ctx.fillText(`+${String(b.totalBonus).padStart(5,'0')}`, WIDTH-44, midY+92);
       ctx.shadowBlur=0;
     }
@@ -942,7 +942,7 @@ class Game {
     // Score — โผล่หลัง 30 frames
     if (t >= 30) {
       ctx.globalAlpha = Math.min(1, (t-30) / 20);
-      ctx.fillStyle = COL.YELLOW; ctx.font = 'bold 24px Courier New';
+      ctx.fillStyle = '#1a3a5c'; ctx.font = 'bold 24px Courier New';
       ctx.fillText('SCORE: ' + String(this.player.score).padStart(6,'0'), WIDTH/2, HEIGHT/2 - 10);
       ctx.globalAlpha = 1;
     }

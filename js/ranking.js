@@ -148,7 +148,7 @@ class RankingScreen {
     ctx.fillText('ENTER YOUR NAME', WIDTH/2, 80);
 
     // Score
-    ctx.fillStyle = COL.YELLOW; ctx.font = 'bold 22px Courier New';
+    ctx.fillStyle = '#1a3a5c'; ctx.font = 'bold 22px Courier New';
     ctx.fillText(`SCORE: ${String(this.playerScore).padStart(6,'0')}`, WIDTH/2, 125);
 
     // Rank badge
@@ -201,7 +201,7 @@ class RankingScreen {
 
   _drawBoard(ctx) {
     // Title
-    ctx.fillStyle = COL.YELLOW; ctx.font='bold 28px Arial';
+    ctx.fillStyle = '#1a3a5c'; ctx.font='bold 28px Arial';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('🏆  RANKING  🏆', WIDTH/2, 55);
 
@@ -233,7 +233,7 @@ class RankingScreen {
       ctx.fillText(entry.name, 52, y+rowH/2-2);
 
       // score
-      ctx.fillStyle = COL.YELLOW; ctx.font='bold 16px Courier New';
+      ctx.fillStyle = '#1a3a5c'; ctx.font='bold 16px Courier New';
       ctx.textAlign='right';
       ctx.fillText(String(entry.score).padStart(6,'0'), WIDTH-15, y+rowH/2-2);
 
