@@ -39,7 +39,7 @@ class Bullet {
       ctx.drawImage(this._bc, -this.w/2, -this.h/2, this.w, this.h);
     } else {
       // fallback: simple gradient (no shadowBlur)
-      ctx.fillStyle = 'rgb(255,230,0)';
+      ctx.fillStyle = 'rgb(255, 183, 0)';
       ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h);
       ctx.fillStyle = 'rgba(255,255,180,0.7)';
       ctx.fillRect(-this.w/2+2, -this.h/2+2, this.w-4, this.h/3);
