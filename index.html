@@ -6,6 +6,13 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
                  user-scalable=no, viewport-fit=cover" />
   <title>Shooting Game</title>
+  <meta name="description" content="Mobile shooting game — defeat the boss and rescue your friend!" />
+  <meta property="og:title"       content="Shooting Game" />
+  <meta property="og:description" content="Mobile shooting game — defeat the boss and rescue your friend!" />
+  <meta property="og:type"        content="website" />
+  <meta name="theme-color"        content="#5ba3c9" />
+  <meta name="apple-mobile-web-app-capable"          content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -44,9 +51,9 @@
     }
     #loading-bar-bg {
       width: 240px; height: 10px;
-      background: rgba(255,255,255,0.4);
+      background: rgba(180,215,235,0.5);
       border-radius: 5px;
-      border: 1px solid #0070a0;
+      border: 1px solid #5ba3c9;
     }
     #loading-bar {
       height: 100%; width: 0%;
@@ -70,21 +77,23 @@
 </div>
 
 <!--  ════ Scripts — load order matters ════  -->
-<script src="js/settings.js"></script>
-<script src="js/Character/player.js"></script>
-<script src="js/Character/enemy.js"></script>
-<script src="js/Character/boss.js"></script>
-<script src="js/Character/items.js"></script>
-  <script src="js/Character/specials.js"></script>
-<script src="js/joypad.js"></script>
-<script src="js/ranking.js"></script>
-<script src="js/game.js"></script>
+<script src="js/settings.js?v=1.0.0" defer></script>
+<script src="js/Character/player.js?v=1.0.0" defer></script>
+<script src="js/Character/enemy.js?v=1.0.0" defer></script>
+<script src="js/Character/boss.js?v=1.0.0" defer></script>
+<script src="js/Character/items.js?v=1.0.0" defer></script>
+  <script src="js/Character/specials.js?v=1.0.0" defer></script>
+<script src="js/joypad.js?v=1.0.0" defer></script>
+<script src="js/ranking.js?v=1.0.0" defer></script>
+<script src="js/game.js?v=1.0.0" defer></script>
 
 <script>
 // ════════════════════════════════════════════════════
 //  Asset Loader  — loads all images & sounds, then starts game
+//  ห่อด้วย DOMContentLoaded เพื่อให้ defer scripts โหลดครบก่อน
 // ════════════════════════════════════════════════════
 
+document.addEventListener('DOMContentLoaded', function () {
 (function () {
   // Scale canvas wrapper to fit screen
   function fitScreen() {
@@ -177,31 +186,25 @@
     let game = null;   // ประกาศก่อน unlockAudio ใช้ได้
 
     function unlockAudio() {
-      // resume BGM + init AudioContext SFX buffers (iOS ต้องการ user gesture)
+      // resume Web Audio API context ถ้ามี
+      if (window.AudioContext || window.webkitAudioContext) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!unlockAudio._ctx) {
+          unlockAudio._ctx = new AC();
+          unlockAudio._ctx.resume().catch(() => {});
+        }
+      }
+      // resume BGM ถ้า pending
       if (game && game._resumeBGMIfPending) game._resumeBGMIfPending();
-      // ลบ listener หลังแตะครั้งแรก (ไม่ต้องเรียกซ้ำ)
-      document.removeEventListener('touchstart', unlockAudio);
-      document.removeEventListener('mousedown',  unlockAudio);
     }
     document.addEventListener('touchstart', unlockAudio, { passive: true });
     document.addEventListener('mousedown',  unlockAudio);
-
-    // ── BGM — ส่ง signal ให้ game จัดการผ่าน _pageActive ──────
-    function onHide() { if (game) game.onPageHide(); }
-    function onShow() { if (game) game.onPageShow(); }
-
-    document.addEventListener('visibilitychange', () => {
-      document.hidden ? onHide() : onShow();
-    });
-    window.addEventListener('pagehide', onHide);
-    window.addEventListener('pageshow', onShow);
-    window.addEventListener('freeze',   onHide);
-    window.addEventListener('resume',   onShow);
 
     game = new Game(canvas, images, sounds);
     game.start();
   }
 })();
+}); // DOMContentLoaded
 </script>
 
 </body>
