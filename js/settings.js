@@ -1,107 +1,117 @@
 // ═══════════════════════════════════════════════════
-//  settings.js  —  mirrors settings.py
+//  settings.js  —  Game configuration (namespace: CFG)
+//  ── แก้ค่าเกมทั้งหมดที่นี่ ──
 // ═══════════════════════════════════════════════════
 
-const WIDTH  = 390;
-const HEIGHT = 720;
+const CFG = Object.freeze({
 
-const HUD_H  = 52;
-const PAD_H  = 160;
-const GAME_H = HEIGHT - HUD_H - PAD_H;   // 508
+  // ── Canvas ──────────────────────────────────────
+  WIDTH  : 390,
+  HEIGHT : 720,
+  HUD_H  : 52,
+  PAD_H  : 160,
+  get GAME_H() { return this.HEIGHT - this.HUD_H - this.PAD_H; }, // 508
 
-const FPS = 60;
+  FPS    : 60,
 
-const COL = {
-  WHITE  : '#f0f8ff',
-  BLACK  : '#1a3a5c',
-  RED    : 'rgb(224,122,138)',   // ชมพู pastel
-  GREEN  : 'rgb(116,198,157)',   // เขียว pastel
-  CYAN   : 'rgb(91,163,201)',    // ฟ้า pastel accent
-  YELLOW : 'rgb(249, 164, 79)',    // เหลือง over pastel
-  PURPLE : 'rgb(162,155,206)',   // ม่วง pastel
-  DARK   : 'rgb(208,234,245)',   // BG ฟ้าอ่อน
-  HP_COL : 'rgb(224,122,138)',   // ชมพู pastel
-};
+  // ── Colors ──────────────────────────────────────
+  COL : {
+    WHITE  : '#f0f8ff',
+    BLACK  : '#1a3a5c',
+    RED    : 'rgb(224,122,138)',
+    GREEN  : 'rgb(116,198,157)',
+    CYAN   : 'rgb(91,163,201)',
+    YELLOW : 'rgb(249,199,79)',
+    PURPLE : 'rgb(162,155,206)',
+    DARK   : 'rgb(208,234,245)',
+    HP_COL : 'rgb(224,122,138)',
+  },
 
-const PLAYER_SPEED     = 4; //7
-const BULLET_SPEED_VAL = 6; //12
-const SPECIAL_SPEED    = 9;
-const ITEM_SPEED       = 3;
-const START_SPECIALS   = 2;
-const MAX_SPECIALS     = 9;
-const MAX_WEAPON_LEVEL = 4;   // Lv1=1shot Lv2=3shot Lv3=6shot Lv4=spread full
+  // ── Player / Bullet ─────────────────────────────
+  PLAYER_SPEED     : 4,
+  BULLET_SPEED_VAL : 6,
+  SPECIAL_SPEED    : 9,
+  ITEM_SPEED       : 3,
+  START_SPECIALS   : 2,
+  MAX_SPECIALS     : 9,
+  MAX_WEAPON_LEVEL : 4,   // Lv1=1shot Lv2=3shot Lv3=6shot Lv4=spread
 
-// ─────────────────────────────────────────────────────
-//  🎮 ACTIVE_SPECIAL — เลือก Special ของเด็กคนนี้
-//  เปลี่ยนค่าเพื่อ fix อาวุธพิเศษที่ต้องการ
-//
-//  'flame'    = 🔥 Flame Burst   (ยิง 12 นัดกระจาย 180°)
-//  'thunder'  = ⚡ Thunder Strike (สายฟ้าล็อคศัตรูอัตโนมัติ)
-//  'tornado'  = 🌀 Tornado        (วนรอบตัวแล้วพุ่งออก)
-//  'bigbomb'  = 💣 Big Bomb       (ระเบิดพื้นที่วงกว้าง)
-//  'starrain' = 🌟 Star Rain      (ดาวตก 8 ดวงจากด้านบน)
-//  'barrier'  = 🛡️ Barrier        (กำแพงดูดซับกระสุนบอส)
-//  'laser'    = 🎯 Laser          (เลเซอร์ทะลุตลอดจอ)
-//  'wave'     = 🌊 Wave Bomb      (คลื่นระเบิดแผ่รอบตัว)
-// ─────────────────────────────────────────────────────
-const ACTIVE_SPECIAL = 'starrain';
+  // ── 🎮 Special Weapon ────────────────────────────
+  // 'flame' | 'thunder' | 'tornado' | 'bigbomb'
+  // 'starrain' | 'barrier' | 'laser' | 'wave'
+  ACTIVE_SPECIAL : 'starrain',
 
-// ─────────────────────────────────────────────────────
-//  🎮 ENEMY SPAWN CONFIG
-// ─────────────────────────────────────────────────────
-const SPAWN_INTERVAL   = 80;   // frames ระหว่าง wave
-const SPAWN_PER_WAVE   = 3;    // enemy โผล่พร้อมกันต่อ wave
-const SPAWN_TOTAL      = 65;   // enemy ทั้งหมดก่อนเจอบอส
+  // ── Enemy Spawn ──────────────────────────────────
+  SPAWN_INTERVAL : 80,   // frames ระหว่าง wave
+  SPAWN_PER_WAVE : 3,    // enemy ต่อ wave
+  SPAWN_TOTAL    : 65,   // enemy ทั้งหมดก่อนบอส
 
-// ─────────────────────────────────────────────────────
-//  🛡️ BOSS BARRIER CONFIG
-// ─────────────────────────────────────────────────────
-const BOSS_BARRIER_DURATION = 300;  // frames (5 วิ) barrier เปิดตอนบอสโผล่
+  // ── Boss Barrier ─────────────────────────────────
+  BOSS_BARRIER_DURATION : 300,  // frames (5 วิ)
 
+  // ── Background Scroll ────────────────────────────
+  // ใช้รูป background.jpg สูงกว่า GAME_H (508px)
+  // 0.6=ช้า | 1=ปานกลาง | 2=เร็ว  (px/frame @60fps)
+  BG_SCROLL_SPEED : 0.6,
 
-const STATE = {
-  INTRO      : 'intro',
-  PLAYING    : 'playing',
-  BOSS_FIGHT : 'boss_fight',
-  VICTORY    : 'victory',
-  GAME_OVER  : 'game_over',
-};
+  // ── States ───────────────────────────────────────
+  STATE : {
+    INTRO      : 'intro',
+    PLAYING    : 'playing',
+    BOSS_FIGHT : 'boss_fight',
+    VICTORY    : 'victory',
+    GAME_OVER  : 'game_over',
+  },
 
-const IMG = {
-  PLAYER : 'assets/images/player.png',
-  ENEMY  : 'assets/images/enemy.png',
-  BOSS   : 'assets/images/boss.png',
-  FRIEND : 'assets/images/friend.png',
-  BG     : 'assets/images/background.jpg',
-  BULLET : 'assets/images/bullet.png',   // กระสุนของผู้เล่น (PNG โปร่งใส)
-  // Item sprites
-  ITEM_LIFE    : 'assets/images/items/item_life.png',
-  ITEM_SHIELD  : 'assets/images/items/item_shield.png',
-  ITEM_SPECIAL : 'assets/images/items/item_special.png',
-  ITEM_WEAPON  : 'assets/images/items/item_weapon.png',
-  // Special weapon icons
-  SPECIAL_FLAME    : 'assets/images/specials/special_flame.png',
-  SPECIAL_THUNDER  : 'assets/images/specials/special_thunder.png',
-  SPECIAL_TORNADO  : 'assets/images/specials/special_tornado.png',
-  SPECIAL_BIGBOMB  : 'assets/images/specials/special_bigbomb.png',
-  SPECIAL_STARRAIN : 'assets/images/specials/special_starrain.png',
-  SPECIAL_BARRIER  : 'assets/images/specials/special_barrier.png',
-  SPECIAL_LASER    : 'assets/images/specials/special_laser.png',
-  SPECIAL_WAVE     : 'assets/images/specials/special_wave.png',
-};
+  // ── Asset Paths ───────────────────────────────────
+  IMG : {
+    PLAYER : 'assets/images/player.png',
+    ENEMY  : 'assets/images/enemy.png',
+    BOSS   : 'assets/images/boss.png',
+    FRIEND : 'assets/images/friend.png',
+    BG     : 'assets/images/background.jpg',
+    BULLET : 'assets/images/bullet.png',
+    ITEM_LIFE    : 'assets/images/items/item_life.png',
+    ITEM_SHIELD  : 'assets/images/items/item_shield.png',
+    ITEM_SPECIAL : 'assets/images/items/item_special.png',
+    ITEM_WEAPON  : 'assets/images/items/item_weapon.png',
+    SPECIAL_FLAME    : 'assets/images/specials/special_flame.png',
+    SPECIAL_THUNDER  : 'assets/images/specials/special_thunder.png',
+    SPECIAL_TORNADO  : 'assets/images/specials/special_tornado.png',
+    SPECIAL_BIGBOMB  : 'assets/images/specials/special_bigbomb.png',
+    SPECIAL_STARRAIN : 'assets/images/specials/special_starrain.png',
+    SPECIAL_BARRIER  : 'assets/images/specials/special_barrier.png',
+    SPECIAL_LASER    : 'assets/images/specials/special_laser.png',
+    SPECIAL_WAVE     : 'assets/images/specials/special_wave.png',
+  },
 
-const SND = {
-  BGM     : 'assets/sounds/bgm.mp3',
-  SHOOT   : 'assets/sounds/shoot.wav',
-  HIT     : 'assets/sounds/player_hit.wav',
-  ITEM    : 'assets/sounds/pickup.wav',
-  B_SHOOT : 'assets/sounds/boss_shoot.wav',
-  EXPLODE : 'assets/sounds/explosion.wav',
-  WIN     : 'assets/sounds/victory.wav',
-};
+  SND : {
+    BGM     : 'assets/sounds/bgm.mp3',
+    SHOOT   : 'assets/sounds/shoot.wav',
+    HIT     : 'assets/sounds/player_hit.wav',
+    ITEM    : 'assets/sounds/pickup.wav',
+    B_SHOOT : 'assets/sounds/boss_shoot.wav',
+    EXPLODE : 'assets/sounds/explosion.wav',
+    WIN     : 'assets/sounds/victory.wav',
+  },
+});
 
-// ── Sprite util: remove white/near-white bg from image ──────────────
-// Returns an offscreen canvas with background removed (alpha=0)
+// ── Destructure สำหรับ backward-compat กับ code ที่ยังใช้ชื่อเดิม ──
+// (ลบ block นี้ได้เมื่อ refactor ครบทุกไฟล์แล้ว)
+const { WIDTH, HEIGHT, HUD_H, PAD_H, FPS,
+        PLAYER_SPEED, BULLET_SPEED_VAL, SPECIAL_SPEED, ITEM_SPEED,
+        START_SPECIALS, MAX_SPECIALS, MAX_WEAPON_LEVEL,
+        ACTIVE_SPECIAL, SPAWN_INTERVAL, SPAWN_PER_WAVE, SPAWN_TOTAL,
+        BOSS_BARRIER_DURATION, BG_SCROLL_SPEED } = CFG;
+const GAME_H = CFG.GAME_H;
+const COL    = CFG.COL;
+const STATE  = CFG.STATE;
+const IMG    = CFG.IMG;
+const SND    = CFG.SND;
+
+// ── Sprite util ──────────────────────────────────────────────────────
+/** Remove white/near-white background from an image element.
+ *  Returns an offscreen canvas with those pixels set to alpha=0. */
 function removeBackground(img, tolerance = 30) {
   const oc  = document.createElement('canvas');
   oc.width  = img.naturalWidth  || img.width;
@@ -116,28 +126,8 @@ function removeBackground(img, tolerance = 30) {
       if (d[i] >= thr && d[i+1] >= thr && d[i+2] >= thr) d[i+3] = 0;
     }
     c.putImageData(id, 0, 0);
-  } catch(e) {
-    // CORS: just return canvas as-is (PNG with real alpha will still work)
+  } catch (e) {
     console.warn('removeBackground skipped (CORS):', e.message);
   }
   return oc;
 }
-
-// ─────────────────────────────────────────────────────
-//  🌄 BACKGROUND SCROLL CONFIG
-//  ใช้รูป background.jpg ที่สูงกว่า GAME_H (508px)
-//  แนะนำให้รูปสูงอย่างน้อย 2× = 1016px ขึ้นไป
-//
-//  BG_SCROLL_SPEED: pixels ที่เลื่อนต่อ frame (60fps)
-//  ──────────────────────────────────────────────────
-//  ค่า  | ความเร็ว     | ใน 50 วิ เลื่อนได้
-//  ──────────────────────────────────────────────────
-//   1   | ช้ามาก       | 3,000 px
-//   2   | ช้า          | 6,000 px  ← แนะนำ (รูป ~1500px)
-//   3   | ปานกลาง      | 9,000 px  ← แนะนำ (รูป ~2000px)
-//   4   | เร็ว         | 12,000 px
-//   5   | เร็วมาก      | 15,000 px
-//  ──────────────────────────────────────────────────
-//  เลื่อนเฉพาะ PLAYING state — หยุดอัตโนมัติตอน BOSS_FIGHT
-// ─────────────────────────────────────────────────────
-const BG_SCROLL_SPEED = 0.6;

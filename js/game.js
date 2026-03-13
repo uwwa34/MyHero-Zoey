@@ -132,19 +132,7 @@ class Game {
       src.start(0);
       return;
     }
-    // fallback: HTMLAudioElement (desktop / ยังไม่ได้ init)
-    const s = this.sounds[key]; if (!s) return;
-    if (!this._audioPool) this._audioPool = {};
-    if (!this._audioPool[key]) this._audioPool[key] = [s];
-    const pool = this._audioPool[key];
-    let node = pool.find(n => n.paused || n.ended);
-    if (!node) {
-      if (pool.length < 3) { node = s.cloneNode(); node.volume = 0.6; pool.push(node); }
-      else node = pool[0];
-    }
-    if (!node.paused) { node.pause(); node.currentTime = 0; }
-    else node.currentTime = 0;
-    node.play().catch(() => {});
+    // AudioContext ยังไม่พร้อม (ก่อน user gesture) — รอ _resumeBGMIfPending
   }
 
   // ── Keys ──────────────────────────────────────────
@@ -684,12 +672,15 @@ class Game {
       const img = this.images.bg;
       const imgH = img.naturalHeight || img.height;
       const imgW = img.naturalWidth  || img.width;
-      // sy: crop จากล่างขึ้นบน — _bgY=0 → เห็นส่วนล่างสุด, _bgY=maxScroll → เห็นส่วนบนสุด
-      const maxScroll = Math.max(0, imgH - GAME_H);
-      const sy = maxScroll - Math.min(this._bgY, maxScroll);
+      // sy: ตำแหน่ง crop ในรูป (วิ่งจากล่างขึ้นบน)
+      // _bgY นับขึ้นเรื่อยๆ → mod imgH เพื่อ loop
+      const maxScroll = Math.max(0, imgH - GAME_H);  // พื้นที่เลื่อนได้
+      const sy = maxScroll > 0
+        ? maxScroll - (this._bgY % (maxScroll + 1))  // เลื่อนขึ้น: เริ่มล่าง→บน
+        : 0;
       ctx.drawImage(img, 0, sy, imgW, GAME_H, 0, HUD_H, WIDTH, GAME_H);
     } else {
-      ctx.fillStyle='rgb(208,234,245)'; ctx.fillRect(0,HUD_H,WIDTH,GAME_H);
+      ctx.fillStyle='rgb(5,8,20)'; ctx.fillRect(0,HUD_H,WIDTH,GAME_H);
     }
 
     // Clip game zone
@@ -744,8 +735,8 @@ class Game {
   // ── HUD ───────────────────────────────────────────
   _drawHUD(){
     const ctx=this.ctx;
-    ctx.fillStyle='rgba(220,240,250,0.95)'; ctx.fillRect(0,0,WIDTH,HUD_H);
-    ctx.strokeStyle='rgba(91,163,201,0.5)'; ctx.lineWidth=1;
+    ctx.fillStyle='rgba(0,10,25,0.88)'; ctx.fillRect(0,0,WIDTH,HUD_H);
+    ctx.strokeStyle='rgba(0,160,200,0.3)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(0,HUD_H); ctx.lineTo(WIDTH,HUD_H); ctx.stroke();
 
     ctx.fillStyle=COL.CYAN; ctx.font='bold 13px Courier New';
@@ -753,20 +744,20 @@ class Game {
     ctx.fillText('HP',10,10);
 
     const tx=34,ty=14,tw=110,th=11;
-    ctx.fillStyle='rgb(220,190,200)'; this._rr(ctx,tx,ty,tw,th,3,true,false);
+    ctx.fillStyle='rgb(60,0,0)'; this._rr(ctx,tx,ty,tw,th,3,true,false);
     const hw=Math.round(tw*this.player.hp/100);
     if(hw>0){ctx.fillStyle=COL.HP_COL; this._rr(ctx,tx,ty,hw,th,3,true,false);}
-    ctx.strokeStyle='rgb(224,122,138)'; ctx.lineWidth=1; this._rr(ctx,tx,ty,tw,th,3,false,true);
+    ctx.strokeStyle='rgb(180,60,80)'; ctx.lineWidth=1; this._rr(ctx,tx,ty,tw,th,3,false,true);
 
     ctx.fillStyle=COL.YELLOW; ctx.font='bold 13px Courier New';
     ctx.textAlign='center';
     ctx.fillText(String(this.player.score).padStart(6,'0'), WIDTH/2.165, 18); //WIDTH/2, 18);
 
     // Weapon pips
-    ctx.fillStyle='rgb(116,198,157)'; ctx.font='bold 12px Courier New'; ctx.textAlign='left';
+    ctx.fillStyle='rgb(100,230,80)'; ctx.font='bold 12px Courier New'; ctx.textAlign='left';
     ctx.fillText(`WPN Lv${this.player.weaponLevel}`, WIDTH-175, 8);
     for(let i=0;i<MAX_WEAPON_LEVEL;i++){
-      ctx.fillStyle=i<this.player.weaponLevel?'rgb(116,198,157)':'rgb(180,210,225)';
+      ctx.fillStyle=i<this.player.weaponLevel?'rgb(100,230,80)':'rgb(30,50,30)';
       this._rr(ctx,WIDTH-175+i*14,30,10,12,2,true,false);
     }
 
@@ -782,9 +773,9 @@ class Game {
     const _dots = Math.min(this.player.specials, 9);
     for(let i=0;i<_dots;i++){
       const cx = WIDTH - 8 - (_dots-1-i)*14;
-      ctx.fillStyle='rgb(244,162,97)';
+      ctx.fillStyle='rgb(255,120,0)';
       ctx.beginPath(); ctx.arc(cx,36,5,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgb(249,199,79)';
+      ctx.fillStyle='rgb(255,220,80)';
       ctx.beginPath(); ctx.arc(cx-1,33,2,0,Math.PI*2); ctx.fill();
     }
   }
@@ -806,18 +797,18 @@ class Game {
     const filled = Math.round(bh * ratio);
     // สีเปลี่ยนตาม HP: เขียว → เหลือง → แดง → rage สีแดงกระพริบ
     let barCol = ratio > 0.6 ? COL.PURPLE :
-                 ratio > 0.4 ? 'rgb(249,199,79)'  :
-                                'rgb(224,122,138)';
-    if (this.boss._rage && Math.floor(Date.now()/150)%2===0) barCol='rgb(244,162,97)';
+                 ratio > 0.4 ? 'rgb(255,200,50)' :
+                                'rgb(255,40,40)';
+    if (this.boss._rage && Math.floor(Date.now()/150)%2===0) barCol='rgb(255,120,0)';
 
-    ctx.fillStyle='rgb(200,215,230)'; this._rr(ctx,x,y,bw,bh,4,true,false);
+    ctx.fillStyle='rgb(20,0,30)'; this._rr(ctx,x,y,bw,bh,4,true,false);
     if(filled){ ctx.fillStyle=barCol; this._rr(ctx,x,y+bh-filled,bw,filled,4,true,false); }
-    ctx.strokeStyle='rgb(162,155,206)'; ctx.lineWidth=1; this._rr(ctx,x,y,bw,bh,4,false,true);
+    ctx.strokeStyle='rgb(180,80,255)'; ctx.lineWidth=1; this._rr(ctx,x,y,bw,bh,4,false,true);
 
     // RAGE WARNING
     if (this.boss._rage) {
       ctx.save();
-      ctx.fillStyle=`rgba(224,122,138,${0.5+0.3*Math.sin(Date.now()*0.01)})`;
+      ctx.fillStyle=`rgba(255,40,40,${0.6+0.4*Math.sin(Date.now()*0.01)})`;
       ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('RAGE', x+bw/2, y-12);
       ctx.restore();
@@ -833,9 +824,9 @@ class Game {
       'รีบไปช่วยเพื่อนกันเถอะ!',                               // phase 3: บอสหนี
     ];
     // const cols=['#ffffff','rgb(255,200,0)','rgb(229,255,0)','rgb(0,220,240)'];
-    const cols=['#1a3a5c','#1a3a5c','#1a3a5c','#945bc9'];
+    const cols=['#ffffff','#ffffff','#ffffff','rgb(0,220,240)'];
     const capY=HUD_H+GAME_H-42;
-    ctx.fillStyle='rgba(184,223,240,0.88)'; ctx.fillRect(0,capY,WIDTH,34);
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,capY,WIDTH,34);
     ctx.fillStyle=cols[this.introPhase]; ctx.font='bold 20px Arial';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(caps[this.introPhase],WIDTH/2,capY+17);
@@ -846,11 +837,11 @@ class Game {
     const midY = HUD_H + GAME_H / 2;
 
     // ── dark panel ──
-    ctx.fillStyle = 'rgba(208,234,245,0.92)';
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
     ctx.beginPath();
     ctx.roundRect(20, midY - 115, WIDTH - 40, 265, 14);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(91,163,201,0.6)';
+    ctx.strokeStyle = 'rgba(0,220,240,0.35)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
@@ -858,7 +849,7 @@ class Game {
     ctx.textBaseline = 'middle';
 
     // ── Title ──
-    ctx.shadowColor = 'rgba(91,163,201,0.7)'; ctx.shadowBlur = 14;
+    ctx.shadowColor = 'rgba(0,220,240,0.9)'; ctx.shadowBlur = 14;
     ctx.fillStyle   = COL.CYAN; ctx.font = 'bold 28px Arial';
     ctx.fillText('RESCUE SUCCESS!', WIDTH/2, midY - 82);
     ctx.shadowBlur = 0;
@@ -868,18 +859,18 @@ class Game {
       const b = this.bonusBreakdown;
 
       // divider บน
-      ctx.strokeStyle='rgba(91,163,201,0.3)'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(40,midY-54); ctx.lineTo(WIDTH-40,midY-54); ctx.stroke();
 
       const rows = [
-        { label:`TIME  (${b.secElapsed}s)`, val:b.timeBonus,  col:'rgb(91,163,201)'  },
-        { label:`HP BONUS`,                  val:b.hpBonus,   col:'rgb(224,122,138)' },
-        { label:`SPECIAL BONUS`,             val:b.spBonus,   col:'rgb(244,162,97)'  },
+        { label:`TIME  (${b.secElapsed}s)`, val:b.timeBonus,  col:'rgb(100,220,255)' },
+        { label:`HP BONUS`,                  val:b.hpBonus,   col:'rgb(255,110,110)' },
+        { label:`SPECIAL BONUS`,             val:b.spBonus,   col:'rgb(255,185,60)'  },
       ];
       rows.forEach((r, i) => {
         const y = midY - 30 + i * 34;
         // label
-        ctx.fillStyle = 'rgba(45,106,159,0.85)';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
         ctx.font = '14px Courier New'; ctx.textAlign = 'left';
         ctx.fillText(r.label, 44, y);
         // value
@@ -889,12 +880,12 @@ class Game {
       });
 
       // divider ล่าง
-      ctx.strokeStyle='rgba(91,163,201,0.5)'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(40,midY+74); ctx.lineTo(WIDTH-40,midY+74); ctx.stroke();
 
       // TOTAL
-      ctx.shadowColor='rgba(249,199,79,0.7)'; ctx.shadowBlur=10;
-      ctx.fillStyle='rgba(45,106,159,0.8)'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
+      ctx.shadowColor='rgba(255,230,0,0.8)'; ctx.shadowBlur=10;
+      ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
       ctx.fillText('TOTAL BONUS', 44, midY+92);
       ctx.fillStyle=COL.YELLOW; ctx.font='bold 22px Courier New'; ctx.textAlign='right';
       ctx.fillText(`+${String(b.totalBonus).padStart(5,'0')}`, WIDTH-44, midY+92);
@@ -903,7 +894,7 @@ class Game {
 
     // ── Tap hint ──
     if (this.victoryCanExit) {
-      ctx.fillStyle='rgba(45,106,159,0.8)'; ctx.font='16px Arial'; ctx.textAlign='center';
+      ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='16px Arial'; ctx.textAlign='center';
       ctx.fillText('Tap SHOOT to Play Again', WIDTH/2, midY+130);
     }
   }
@@ -916,9 +907,9 @@ class Game {
     ctx.save();
     ctx.globalAlpha = fade * (0.5 + 0.3 * pulse);
     // hexagon-like shield glow
-    ctx.strokeStyle = `rgba(91,163,201,${0.7 + 0.2*pulse})`;
+    ctx.strokeStyle = `rgba(80,200,255,${0.8 + 0.2*pulse})`;
     ctx.lineWidth   = 3 + pulse * 2;
-    ctx.shadowColor = 'rgba(91,163,201,0.8)';
+    ctx.shadowColor = 'rgba(0,180,255,0.9)';
     ctx.shadowBlur  = 20 + pulse * 10;
     const cx = r.x + r.w/2, cy = r.y + r.h/2;
     const rad = Math.max(r.w, r.h) * 0.65;
@@ -929,7 +920,7 @@ class Game {
             : ctx.lineTo(cx+rad*Math.cos(a), cy+rad*Math.sin(a));
     }
     ctx.closePath(); ctx.stroke();
-    ctx.fillStyle = `rgba(91,163,201,${0.08 + 0.05*pulse})`;
+    ctx.fillStyle = `rgba(0,150,255,${0.08 + 0.05*pulse})`;
     ctx.fill();
     ctx.restore();
   }
@@ -937,13 +928,13 @@ class Game {
   _drawGameOver(){
     const ctx = this.ctx;
     const t   = this.gameOverTimer;
-    ctx.fillStyle = 'rgba(184,223,240,0.92)'; ctx.fillRect(0,0,WIDTH,HEIGHT);
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0,0,WIDTH,HEIGHT);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
     // "GAME OVER" fade in ทันที
     if (t >= 10) {
       ctx.globalAlpha = Math.min(1, (t-10) / 20);
-      ctx.fillStyle = 'rgb(224,122,138)'; ctx.font = 'bold 40px Arial';
+      ctx.fillStyle = 'rgb(220,40,60)'; ctx.font = 'bold 40px Arial';
       ctx.fillText('GAME OVER', WIDTH/2, HEIGHT/2 - 70);
       ctx.globalAlpha = 1;
     }
@@ -961,7 +952,7 @@ class Game {
       const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.005);
       const bx = WIDTH/2-110, by = HEIGHT/2+30, bw = 220, bh = 50;
       ctx.globalAlpha = pulse;
-      ctx.fillStyle = 'rgba(91,163,201,0.2)'; ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(0,200,230,0.2)'; ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
       this._rr(ctx, bx, by, bw, bh, 10, true, true);
       ctx.fillStyle = COL.CYAN; ctx.font = 'bold 20px Arial';
       ctx.fillText('TAP TO PLAY AGAIN', WIDTH/2, by+bh/2);
