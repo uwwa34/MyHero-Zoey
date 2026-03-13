@@ -17,7 +17,7 @@ const COL = {
   RED    : 'rgb(224,122,138)',   // ชมพู pastel
   GREEN  : 'rgb(116,198,157)',   // เขียว pastel
   CYAN   : 'rgb(91,163,201)',    // ฟ้า pastel accent
-  YELLOW : 'rgb(249,199,79)',    // เหลือง pastel
+  YELLOW : 'rgb(249, 164, 79)',    // เหลือง over pastel
   PURPLE : 'rgb(162,155,206)',   // ม่วง pastel
   DARK   : 'rgb(208,234,245)',   // BG ฟ้าอ่อน
   HP_COL : 'rgb(224,122,138)',   // ชมพู pastel
