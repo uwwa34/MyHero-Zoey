@@ -180,8 +180,8 @@ class Game {
       return;
     }
     if (this.state===STATE.PLAYING||this.state===STATE.BOSS_FIGHT) {
-      if (key===' ') this.shootPlayer();
-      if (key==='b'||key==='B') this.shootBomb();
+      if (key==='t'||key==='T') this.shootPlayer();
+      if (key==='r'||key==='R') this.shootBomb();
     }
   }
   _joyShoot() {
