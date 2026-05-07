@@ -77,7 +77,7 @@ class RankingScreen {
       if (e.key === 'Backspace') { this.playerName = this.playerName.slice(0,-1); return; }
       if (e.key.length === 1 && this.playerName.length < 12) this.playerName += e.key;
     } else if (this.mode === 'board') {
-      if (e.key === 'Enter' || e.key === ' ') this._done();
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 't' || e.key === 'T') this._done();
     }
   }
 
@@ -247,13 +247,15 @@ class RankingScreen {
       ctx.fillText('No records yet', WIDTH/2, 200);
     }
 
-    // Play Again button
+    // Play Again button — กว้างเต็มแนว ข้อความ fit
     const by = HEIGHT - 70;
     ctx.fillStyle   = 'rgba(91,163,201,0.2)';
     ctx.strokeStyle = COL.CYAN; ctx.lineWidth=2;
-    this._rr(ctx, WIDTH/2-100, by, 200, 48, 10, true, true);
-    ctx.fillStyle=COL.CYAN; ctx.font='bold 20px Arial'; ctx.textAlign='center';
-    ctx.fillText('TAP TO PLAY AGAIN', WIDTH/2, by+24);
+    this._rr(ctx, 20, by, WIDTH-40, 48, 10, true, true);
+    ctx.fillStyle=COL.CYAN; ctx.font='bold 16px Arial'; ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText('แตะที่นี่ หรือกด A เพื่อเริ่มอีกครั้ง', WIDTH/2, by+24);
+    ctx.textBaseline='alphabetic';
   }
 
   _rr(ctx,x,y,w,h,r,fill,stroke){

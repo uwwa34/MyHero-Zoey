@@ -25,7 +25,7 @@ class Game {
 
     this.spawnTimer = 0; this.killed = 0;
     this.spawnCount  = 0;
-    this.introTimer = 0; this.introPhase = 0;
+    this.introTimer = 0; this.introPhase = 0; this.introIdleTimer = 0;
     this.boss.y = HUD_H - 150;
     this.gameTimer      = 0;    // นับเฟรมตั้งแต่เริ่ม PLAYING (ใช้คำนวณ bonus)
     this.gameTimerActive = false;
@@ -146,9 +146,14 @@ class Game {
         this.rankingScreen.handleTap(x, y);
         return;
       }
+      // Intro phase 4: tap ที่จอเพื่อเริ่มเกม
+      if (this.state === STATE.INTRO && this.introPhase === 4) {
+        this._startPlaying();
+        return;
+      }
       // Game Over: tap ที่ปุ่ม "TAP TO PLAY AGAIN"
       if (this.state === STATE.GAME_OVER && this.gameOverReady) {
-        const bx = WIDTH/2-110, by = HEIGHT/2+30, bw = 220, bh = 50;
+        const bx = 20, by = HEIGHT/2+30, bw = WIDTH-40, bh = 50;
         if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) {
           this.restart();
         }
@@ -171,6 +176,13 @@ class Game {
   }
   _handleKeyDown(key) {
     this._resumeBGMIfPending();   // iOS BGM unlock on first key
+    // Intro phase 4: รอกด A เพื่อเริ่มเกม
+    if (this.state === STATE.INTRO && this.introPhase === 4) {
+      if (key === 't' || key === 'T' || key === ' ' || key === 'Enter') {
+        this._startPlaying();
+        return;
+      }
+    }
     if (this.state===STATE.VICTORY) {
       if (this.victoryCanExit) { this.victoryCanExit = false; this._goRanking(); }
       return;
@@ -186,6 +198,16 @@ class Game {
   }
   _joyShoot() {
     this._resumeBGMIfPending();   // iOS BGM unlock on first tap
+    // Ranking board mode: กด A เพื่อออก
+    if (this.rankingScreen.visible && this.rankingScreen.mode === 'board') {
+      this.rankingScreen._done();
+      return;
+    }
+    // Intro phase 4: รอกด A เพื่อเริ่มเกม
+    if (this.state === STATE.INTRO && this.introPhase === 4) {
+      this._startPlaying();
+      return;
+    }
     if (this.state===STATE.PLAYING||this.state===STATE.BOSS_FIGHT) { this.shootPlayer(); return; }
     if (this.state===STATE.VICTORY) {
       if (this.victoryCanExit) { this.victoryCanExit = false; this._goRanking(); }
@@ -238,10 +260,14 @@ class Game {
     this.bonusBreakdown  = null;
     this.gameOverTimer   = 0;
     this.gameOverReady   = false;
+    this.reachedFriend   = false;
+    this.victoryTimer    = 0;
+    this.victoryCanExit  = false;
 
     // กลับไป INTRO เหมือนรอบแรก
     this.introTimer  = 0;
     this.introPhase  = 0;
+    this.introIdleTimer = 0;
     this.state       = STATE.INTRO;
     this.specialType = ACTIVE_SPECIAL;
     this._shootCd = 0;
@@ -252,7 +278,8 @@ class Game {
 
   // ── Boss scene ────────────────────────────────────
   _addBossScene() {
-    this.bossBarrierTimer = BOSS_BARRIER_DURATION;  // เปิด barrier ตอนบอสโผล่
+    this.bossBarrierTimer = BOSS_BARRIER_DURATION;
+    this.cage.alive = true;                              // เปิดกรงสำหรับ boss fight
     this.cage.x = this.boss.cx - this.cage.w/2;
     this.cage.y = this.boss.top - this.cage.h - 5;
     this.friend = new Friend(this.images, this.cage.cx, this.cage.cy);
@@ -579,20 +606,42 @@ class Game {
       if (t >= 300) { this.introPhase = 3; }
 
     // Phase 3: บอส+กรง+เพื่อนลอยขึ้นหนี
-    } else {
+    } else if (this.introPhase === 3) {
       this.boss.y -= 3;
       this.cage.x  = this.boss.cx - this.cage.w/2;
       this.cage.y  = this.boss.bottom + 5;
       this.friend.x = this.cage.cx - this.friend.w/2 + this.cage.struggleOffset();
       this.friend.y = this.cage.cy - this.friend.h/2;
       if (this.boss.bottom < HUD_H) {
+        this.boss        = new Boss(this.images);
+        this.cage        = new Cage();
+        this.cage.alive  = false;   // ซ่อนกรง — ไม่ให้ค้างหน้าจอ
+        this.friend      = null;
+        this.introPhase  = 4;
+        this.introIdleTimer = 0;
+        this.introTimer  = 0;
+        // จัด player กลับกึ่งกลาง
+        this.player.x = WIDTH/2 - this.player.w/2;
+      }
+
+    // Phase 4: รอกด A — wiggle + timeout 30 วิ → loop ใหม่
+    } else {
+      this.introIdleTimer++;
+      this.player.x = WIDTH/2 - this.player.w/2 + Math.sin(this.introIdleTimer * 0.05) * 3;
+      if (this.introIdleTimer >= 30 * FPS) {
+        // สร้าง friend/boss ใหม่ก่อน กลับ phase 0 (friend เป็น null หลัง phase 3)
         this.boss   = new Boss(this.images);
-        this.cage   = new Cage();
-        this.friend = null;
-        this._startPlaying();  // เริ่มเล่นทันที ใช้ ACTIVE_SPECIAL
+        this.boss.y = HUD_H - 200;
+        this.friend = new Friend(this.images, WIDTH/2, HUD_H + GAME_H/2);
+        this.cage.alive     = false;
+        this.introTimer     = 0;
+        this.introPhase     = 0;
+        this.introIdleTimer = 0;
+        this.player.x = WIDTH/2 - this.player.w/2;
       }
     }
   }
+
   // ── Victory ───────────────────────────────────────
   updateVictory(){
     if(!this.reachedFriend){
@@ -695,9 +744,9 @@ class Game {
       if (this.friend) this.friend.draw(ctx);
       if (this.cage.alive) this.cage.draw(ctx);
     }
-    // INTRO: แสดงบอสเฉพาะ phase 1+ (ไม่ให้โผล่ตอน phase 0 ที่เพื่อนอยู่คนเดียว)
+    // INTRO: แสดงบอสเฉพาะ phase 1-3 (phase 0=ยังไม่โผล่, phase 4=ออกไปแล้ว)
     const showBoss = this.state === STATE.INTRO
-      ? this.introPhase >= 1
+      ? (this.introPhase >= 1 && this.introPhase <= 3)
       : this.boss.alive;
     if (showBoss) this.boss.draw(ctx);
     this.bullets .forEach(o=>o.draw(ctx));
@@ -824,9 +873,25 @@ class Game {
       'รีบไปช่วยเพื่อนกันเถอะ!',                               // phase 3: บอสหนี
     ];
     // const cols=['#ffffff','rgb(255,200,0)','rgb(229,255,0)','rgb(0,220,240)'];
-    const cols=['#ffffff','#ffffff','#ffffff','rgb(0,220,240)'];
+    const cols=['#1a3a5c','#1a3a5c','#1a3a5c','#1a3a5c'];
     const capY=HUD_H+GAME_H-42;
-    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,capY,WIDTH,34);
+
+    // Phase 4: หน้าจอรอกด A — caption กระพริบช้าๆ กลางจอ
+    if (this.introPhase === 4) {
+      const alpha = 0.15 + 0.85 * (0.5 + 0.5 * Math.sin(this.introIdleTimer * 0.07));
+      const capY  = HUD_H + GAME_H/2 - 30;   // กึ่งกลาง game zone
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = 'rgba(208,234,245,0.92)'; ctx.fillRect(0, capY, WIDTH, 56);
+      ctx.fillStyle = '#1a3a5c'; ctx.font = 'bold 15px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('พร้อมแล้วแตะที่หน้าจอ หรือกด A', WIDTH/2, capY + 18);
+      ctx.fillStyle = 'rgb(91,163,201)'; ctx.font = 'bold 13px Arial';
+      ctx.fillText('เพื่อไปช่วยเพื่อนกัน!', WIDTH/2, capY + 38);
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    ctx.fillStyle='rgba(208,234,245,0.88)'; ctx.fillRect(0,capY,WIDTH,34);
     ctx.fillStyle=cols[this.introPhase]; ctx.font='bold 20px Arial';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(caps[this.introPhase],WIDTH/2,capY+17);
@@ -880,22 +945,26 @@ class Game {
       });
 
       // divider ล่าง
-      ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(91,163,201,0.5)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(40,midY+74); ctx.lineTo(WIDTH-40,midY+74); ctx.stroke();
 
-      // TOTAL
-      ctx.shadowColor='rgba(45,106,159,0.5)'; ctx.shadowBlur=6;
-      ctx.fillStyle='rgba(45,106,159,0.85)'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
-      ctx.fillText('TOTAL BONUS', 44, midY+92);
-      ctx.fillStyle='#1a3a5c'; ctx.font='bold 22px Courier New'; ctx.textAlign='right';
-      ctx.fillText(`+${String(b.totalBonus).padStart(5,'0')}`, WIDTH-44, midY+92);
+      // TOTAL — label บน / value ล่าง ชัดเจนบน dark panel
+      ctx.shadowColor='rgba(255,220,80,0.6)'; ctx.shadowBlur=8;
+      ctx.textAlign='center';
+      ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.font='bold 13px Courier New';
+      ctx.fillText('TOTAL BONUS', WIDTH/2, midY+87);
+      ctx.fillStyle='rgb(249,199,79)'; ctx.font='bold 26px Courier New';
+      ctx.fillText(`+${String(b.totalBonus).padStart(5,'0')}`, WIDTH/2, midY+112);
       ctx.shadowBlur=0;
     }
 
     // ── Tap hint ──
     if (this.victoryCanExit) {
-      ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='16px Arial'; ctx.textAlign='center';
-      ctx.fillText('Tap SHOOT to Play Again', WIDTH/2, midY+130);
+      const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.005);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = COL.CYAN; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('แตะที่นี่ หรือกด A เพื่อเริ่มอีกครั้ง', WIDTH/2, midY + 138);
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -931,11 +1000,11 @@ class Game {
     ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0,0,WIDTH,HEIGHT);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    // "GAME OVER" fade in ทันที
+    // "หมดแรงแล้ว" fade in ทันที
     if (t >= 10) {
       ctx.globalAlpha = Math.min(1, (t-10) / 20);
-      ctx.fillStyle = 'rgb(220,40,60)'; ctx.font = 'bold 40px Arial';
-      ctx.fillText('GAME OVER', WIDTH/2, HEIGHT/2 - 70);
+      ctx.fillStyle = 'rgb(224,122,138)'; ctx.font = 'bold 40px Arial';
+      ctx.fillText('หมดแรงแล้ว', WIDTH/2, HEIGHT/2 - 70);
       ctx.globalAlpha = 1;
     }
 
@@ -950,12 +1019,14 @@ class Game {
     // ปุ่ม — โผล่เมื่อ gameOverReady (2 วินาที) พร้อม pulse
     if (this.gameOverReady) {
       const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.005);
-      const bx = WIDTH/2-110, by = HEIGHT/2+30, bw = 220, bh = 50;
+      const bx = 20, by = HEIGHT/2+30, bw = WIDTH-40, bh = 50;
       ctx.globalAlpha = pulse;
-      ctx.fillStyle = 'rgba(0,200,230,0.2)'; ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(91,163,201,0.2)'; ctx.strokeStyle = COL.CYAN; ctx.lineWidth = 2;
       this._rr(ctx, bx, by, bw, bh, 10, true, true);
-      ctx.fillStyle = COL.CYAN; ctx.font = 'bold 20px Arial';
-      ctx.fillText('TAP TO PLAY AGAIN', WIDTH/2, by+bh/2);
+      ctx.fillStyle = COL.CYAN; ctx.font = 'bold 16px Arial';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('แตะที่นี่ หรือกด A เพื่อเริ่มอีกครั้ง', WIDTH/2, by+bh/2);
+      ctx.textBaseline = 'alphabetic';
       ctx.globalAlpha = 1;
     }
   }
