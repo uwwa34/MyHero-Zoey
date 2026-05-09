@@ -99,32 +99,57 @@ class Game {
     if (!this.sounds.bgm) return;
     this.sounds.bgm.pause(); this.sounds.bgm.currentTime = 0;
   }
-  // ── AudioContext SFX engine (iOS-safe) ──────────────
+  // ── AudioContext SFX engine ───────────────────────
   async _initAudioCtx() {
     if (this._ac) return;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     this._ac = new AC();
     this._buffers = {};
-    // decode SFX keys (ไม่รวม bgm ที่ใช้ HTMLAudioElement)
+
     const sfxKeys = ['shoot','hit','item','bShoot','explode','win'];
-    await Promise.all(sfxKeys.map(async key => {
+    await Promise.all(sfxKeys.map(key => this._loadBuffer(key)));
+  }
+
+  // โหลด audio buffer — ลอง XHR ก่อน (CORS-safe กว่า fetch บน Chrome)
+  _loadBuffer(key) {
+    return new Promise(resolve => {
       const el = this.sounds[key];
-      if (!el) return;
-      try {
-        const res  = await fetch(el.src);
-        const ab   = await res.arrayBuffer();
-        this._buffers[key] = await this._ac.decodeAudioData(ab);
-      } catch(e) { /* ไม่มีไฟล์ หรือ CORS → skip */ }
-    }));
+      if (!el || !el.src) return resolve();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', el.src, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = () => {
+        if (xhr.status === 0 || xhr.status === 200) {
+          this._ac.decodeAudioData(
+            xhr.response,
+            buf => { this._buffers[key] = buf; resolve(); },
+            ()  => { this._setFallback(key); resolve(); }   // decode fail → fallback
+          );
+        } else {
+          this._setFallback(key); resolve();
+        }
+      };
+      xhr.onerror = () => { this._setFallback(key); resolve(); };
+      xhr.send();
+    });
+  }
+
+  // Fallback: HTMLAudioElement pool (รองรับ format ที่ browser decode ไม่ได้)
+  _setFallback(key) {
+    if (!this._fallback) this._fallback = {};
+    const el = this.sounds[key];
+    if (el) this._fallback[key] = el;
   }
 
   _play(key) {
-    if (key === 'bgm') return;  // BGM ใช้ HTMLAudioElement
-    // ถ้า AudioContext พร้อมและมี buffer → ใช้ Web Audio (iOS-safe)
+    if (key === 'bgm') return;
+
+    // Web Audio path — buffer พร้อมแล้ว
     if (this._ac && this._buffers && this._buffers[key]) {
       if (this._ac.state === 'suspended') this._ac.resume();
-      const src = this._ac.createBufferSource();
+      const src  = this._ac.createBufferSource();
       src.buffer = this._buffers[key];
       const gain = this._ac.createGain();
       gain.gain.value = 0.6;
@@ -132,7 +157,23 @@ class Game {
       src.start(0);
       return;
     }
-    // AudioContext ยังไม่พร้อม (ก่อน user gesture) — รอ _resumeBGMIfPending
+
+    // HTMLAudioElement fallback (ถ้า XHR/decode ล้มเหลว)
+    const fallbackEl = this._fallback && this._fallback[key];
+    if (fallbackEl) {
+      const clone = fallbackEl.cloneNode();
+      clone.volume = 0.6;
+      clone.play().catch(() => {});
+      return;
+    }
+
+    // ยังไม่ init เลย (ก่อน user gesture) — HTMLAudioElement ตรง
+    const el = this.sounds[key];
+    if (el) {
+      const clone = el.cloneNode();
+      clone.volume = 0.6;
+      clone.play().catch(() => {});
+    }
   }
 
   // ── Keys ──────────────────────────────────────────
