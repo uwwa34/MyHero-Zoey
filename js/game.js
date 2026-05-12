@@ -192,6 +192,12 @@ class Game {
         this._startPlaying();
         return;
       }
+      // Victory: tap ที่จอเพื่อข้ามไป ranking
+      if (this.state === STATE.VICTORY && this.victoryCanExit) {
+        this.victoryCanExit = false;
+        this._goRanking();
+        return;
+      }
       // Game Over: tap ที่ปุ่ม "TAP TO PLAY AGAIN"
       if (this.state === STATE.GAME_OVER && this.gameOverReady) {
         const bx = 20, by = HEIGHT/2+30, bw = WIDTH-40, bh = 50;
