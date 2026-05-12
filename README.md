@@ -1,30 +1,40 @@
-# 🎮 Shooting Game
+# 🎮 MyHero — Zoey (Mobile Shooting Game)
 
-เกมยิงปืนแนว Shoot 'em up สำหรับมือถือ พัฒนาด้วย HTML5 Canvas + JavaScript ล้วนๆ ไม่ต้องติดตั้งอะไรเพิ่ม เล่นได้ทันทีผ่านเบราว์เซอร์
+เกม Shooting แนวตั้งสำหรับมือถือ สร้างด้วย HTML5 Canvas + Vanilla JavaScript  
+ออกแบบสำหรับหน้าจอ **390 × 720px** (iPhone / Android Portrait)  
+Asset ทั้งหมดวาดด้วยมือ — ตัวละครและพื้นหลังเป็นภาพจริงของเด็ก
 
 ---
 
-## 📁 โครงสร้างโปรเจกต์
+## 📁 โครงสร้างไฟล์
 
 ```
-shooting-game/
-├── index.html                   ← เปิดไฟล์นี้เพื่อเล่นเกม
-├── README.md
+/
+├── index.html
 ├── assets/
 │   ├── images/
-│   │   ├── player.png           (80×68 px, PNG โปร่งใส)
-│   │   ├── enemy.png            (56×56 px, PNG โปร่งใส)
-│   │   ├── boss.png             (170×110 px, PNG โปร่งใส)
-│   │   ├── friend.png           (60×60 px, PNG โปร่งใส)
-│   │   ├── background.jpg       (390×508 px)
-│   │   ├── bullet.png           (10×22 px, PNG โปร่งใส — วาดหันขึ้น)
-│   │   └── items/
-│   │       ├── item_life.png    (36×36 px)
-│   │       ├── item_shield.png  (36×36 px)
-│   │       ├── item_special.png (36×36 px)
-│   │       └── item_weapon.png  (36×36 px)
+│   │   ├── player.png          (80×100)
+│   │   ├── enemy.png           (56×56)
+│   │   ├── boss.png            (170×110)
+│   │   ├── friend.png          (60×60)
+│   │   ├── background.jpg      (390×1500px+ แนะนำ)
+│   │   ├── bullet.png          (36×44)
+│   │   ├── items/
+│   │   │   ├── item_life.png
+│   │   │   ├── item_shield.png
+│   │   │   ├── item_special.png
+│   │   │   └── item_weapon.png
+│   │   └── specials/
+│   │       ├── special_flame.png
+│   │       ├── special_thunder.png
+│   │       ├── special_tornado.png
+│   │       ├── special_bigbomb.png
+│   │       ├── special_starrain.png
+│   │       ├── special_barrier.png
+│   │       ├── special_laser.png
+│   │       └── special_wave.png
 │   └── sounds/
-│       ├── bgm.mp3              ← เพลงประกอบ (loop)
+│       ├── bgm.mp3
 │       ├── shoot.wav
 │       ├── player_hit.wav
 │       ├── pickup.wav
@@ -32,188 +42,174 @@ shooting-game/
 │       ├── explosion.wav
 │       └── victory.wav
 └── js/
-    ├── settings.js              ← ค่า config ทั้งหมด แก้ตรงนี้เพื่อปรับเกม
-    ├── game.js                  ← logic หลัก, state machine, collision
-    ├── joypad.js                ← virtual joypad (touch/mouse)
-    ├── ranking.js               ← ระบบ ranking (localStorage)
+    ├── settings.js          ← ค่า config ทั้งหมด แก้ที่นี่
+    ├── game.js              ← Main game loop & logic
+    ├── joypad.js            ← Virtual joypad (touch + mouse)
+    ├── ranking.js           ← Ranking screen
     └── Character/
         ├── player.js
         ├── enemy.js
-        ├── boss.js              ← Boss, Cage, Friend
-        └── items.js             ← Bullet, SpecialBullet, BossBullet, Item
+        ├── boss.js
+        ├── items.js
+        └── specials.js
 ```
+
+---
+
+## ⚙️ การตั้งค่า (`js/settings.js`)
+
+ค่าทุกตัวอยู่ใน `CFG` namespace — `Object.freeze()` ป้องกันการแก้ไขโดยไม่ตั้งใจ
+
+### เลือก Special Weapon
+```js
+ACTIVE_SPECIAL : 'starrain',
+```
+
+| ค่า | อาวุธ | ดีล % HP บอส | คำอธิบาย |
+|-----|-------|------------|----------|
+| `flame` | 🔥 Flame Burst | 25% (÷12 นัด) | ยิง 12 นัดกระจาย 180° ทะลุบอสได้ |
+| `thunder` | ⚡ Thunder Strike | 20% | สายฟ้า homing ล็อคเป้าอัตโนมัติ |
+| `tornado` | 🌀 Tornado | 25% (÷6 นัด) | วนรอบตัวแล้วพุ่งออก 6 นัด ทะลุบอสได้ |
+| `bigbomb` | 💣 Big Bomb | 22% | ระเบิดพื้นที่วงกว้าง |
+| `starrain` | 🌟 Star Rain | 20% (÷8 นัด) | ดาวตก 8 ดวงจากด้านบน |
+| `barrier` | 🛡️ Barrier | 0% | กำแพงดูดซับกระสุนบอส |
+| `laser` | 🎯 Laser | 20% | เลเซอร์ทะลุตลอดจอ 120 frame |
+| `wave` | 🌊 Wave Bomb | 20% | คลื่นระเบิดแผ่รอบตัว |
+
+### Enemy Spawn
+```js
+SPAWN_INTERVAL : 80,   // frames ระหว่าง wave (~1.3 วิ)
+SPAWN_PER_WAVE : 3,    // enemy โผล่พร้อมกันต่อ wave
+SPAWN_TOTAL    : 65,   // enemy ทั้งหมดก่อนเจอบอส
+```
+
+### Background Scroll
+```js
+BG_SCROLL_SPEED : 0.6,  // px/frame @60fps
+```
+| ค่า | ความเร็ว | ใน 50 วิเลื่อน | ความสูงรูปที่แนะนำ |
+|-----|---------|--------------|------------------|
+| 0.6 | ช้า ⭐ | ~1,800px | 2,500px+ |
+| 1 | ปานกลาง | 3,000px | 3,500px+ |
+| 2 | เร็ว | 6,000px | 6,500px+ |
+
+---
+
+## 🎮 Game States & Flow
+
+```
+INTRO (phase 0–3) → phase 4 รอกด A → PLAYING → BOSS_FIGHT → VICTORY → RANKING → INTRO
+                                                             ↘ GAME_OVER ↗
+```
+
+| State | คำอธิบาย |
+|-------|----------|
+| `INTRO` phase 0–3 | Animation บอสลงมาจับเพื่อนแล้วหนีไป |
+| `INTRO` phase 4 | หยุดรอ — ข้อความกระพริบ + ผู้เล่น wiggle, timeout 30 วิ → loop ใหม่ |
+| `PLAYING` | เล่นปกติ spawn enemy, background เลื่อนขึ้น |
+| `BOSS_FIGHT` | บอสเข้ามาหลัง enemy ครบ, background หยุด |
+| `VICTORY` | ชนะ → แสดง Bonus Tally → Ranking |
+| `GAME_OVER` | แพ้ → แสดงปุ่มเริ่มใหม่ |
+
+---
+
+## 🧩 ระบบตัวละคร
+
+### Player
+- HP: 100 (แถบสีชมพู HUD)
+- Weapon Level: 1–4 (Lv1=1นัด, Lv2=3นัด, Lv3=6นัด, Lv4=9-way spread)
+- Shield: ดูดซับความเสียหายแทน HP ไม่กระพริบขณะมี shield
+- Invincibility: กระพริบ 1 วิ (60 frame) หลังโดนโดยไม่มี shield
+- Special: เริ่ม 2 ชาร์จ สูงสุด 9
+
+### Enemy
+- ตกลงมาจากด้านบน ยิงกระสุนใส่ผู้เล่น
+- Drop item เมื่อตาย: HP / Shield / Special / Weapon
+
+### Boss
+- HP: 2,500
+- Normal mode: speed 4, fire rate ทุก 65 frame, 3 attack patterns
+- Rage mode (HP < 40%): speed 7, fire rate ทุก 45 frame, 5 attack patterns
+- Boss Barrier: เปิด 300 frame ตอนโผล่ครั้งแรก — กระสุนปกติผ่านไม่ได้, Special สลายได้ทันที
+
+---
+
+## 🏆 คะแนน & Bonus
+
+| แหล่งคะแนน | ค่า |
+|------------|-----|
+| ยิง enemy ตาย | +15 |
+| Time Bonus | สูงสุด 5,000 (ลด 30/วิ) |
+| HP Bonus | HP ที่เหลือ × 20 |
+| Special Bonus | Special ที่เหลือ × 300 |
 
 ---
 
 ## 🕹️ การควบคุม
 
-| ปุ่ม | มือถือ | PC |
-|------|--------|----|
-| เดินซ้าย/ขวา | ◀ / ▶ | Arrow Key |
-| ยิง | **A** | Space |
-| Special | **S** | B |
+| Action | Virtual Joypad | Keyboard |
+|--------|---------------|----------|
+| เดิน ซ้าย/ขวา | ◀ ▶ | ← → |
+| ยิงกระสุน (กดค้าง) | ปุ่ม A | `t` |
+| ยิง Special | ปุ่ม B | `b` |
+
+### การข้ามหน้าต่างๆ (ทุกวิธีทำงานเหมือนกัน)
+
+| หน้าจอ | Joypad A | Keyboard | แตะหน้าจอ |
+|--------|----------|---------|-----------|
+| Intro phase 4 (รอเริ่ม) | ✅ | `t` / Space / Enter | ✅ |
+| Victory Tally | ✅ | `t` / Space / Enter | ✅ |
+| Game Over | ✅ | `t` / Space / Enter | ✅ แตะปุ่ม |
+| Ranking board | ✅ | `t` / Space / Enter | ✅ แตะปุ่ม |
 
 ---
 
-## 🎬 Game Flow
+## 🔊 ระบบเสียง
 
-```
-Intro Scene
-  └─ เพื่อนอยู่คนเดียว
-  └─ บอสบินลงมาจับเพื่อน
-  └─ กรงครอบเพื่อน แล้วบอสพาหนีขึ้นไป
-       ↓
-Playing  (กำจัดศัตรู 33 ตัว)
-       ↓
-Boss Fight
-       ↓
-Victory → แสดง Bonus Score → Ranking
-```
+- **BGM**: `HTMLAudioElement` loop — หยุดอัตโนมัติเมื่อ page ไม่ active (สลับ app / กด Home / ล็อคหน้าจอ)
+- **SFX**: Web Audio API — `XMLHttpRequest` + `decodeAudioData` รองรับทุก platform
+  - Fallback ชั้นที่ 1: HTMLAudioElement ถ้า decode ล้มเหลว
+  - Fallback ชั้นที่ 2: HTMLAudioElement direct ถ้ายังไม่ init
 
 ---
 
-## ⚔️ ระบบเกม
+## 📱 Platform Support
 
-### Playing
-- ศัตรู spawn ทุก **60 frames** (~1 วินาที)
-- กำจัดครบ **33 ตัว** → เข้าสู่ Boss Fight
-- ตอน Boss Fight ศัตรุ spawn ทุก **90 frames**
-
-### Boss
-| สถานะ | HP | ความเร็ว | Fire Rate | Attack Patterns |
-|-------|----|---------|-----------|----------------|
-| ปกติ | 3500 | 4 | ทุก 65f | Fan 3 / Column 2 / Burst 4 ทิศ |
-| **RAGE** (HP<40%) | — | **7** | ทุก **45f** | Fan 7 / Column 4 / Burst 8 / Double Fan / Spiral 12 ทิศ |
-
-> ตอน RAGE บอสกระพริบสีแดง
+| Platform | สถานะ |
+|----------|-------|
+| iOS Safari (iPhone 12–16) | ✅ |
+| iOS Chrome | ✅ |
+| Android Chrome / Firefox | ✅ |
+| Chrome Windows / macOS | ✅ |
+| iPad | ✅ |
+| Desktop Firefox / Safari | ✅ |
 
 ---
 
-## 🔫 ระบบอาวุธ (Weapon Level 1–4)
+## 🛠️ Deploy
 
-| Lv | Pattern | นัด |
-|----|---------|-----|
-| 1 | ตรง | 1 |
-| 2 | Spread | 3 |
-| 3 | Dual Row | 6 |
-| **4 MAX** | 9-Way | 9 |
-
-- อัปเกรดโดยเก็บไอเทม **Weapon (W)**
-- กระสุนใช้ sprite `bullet.png` หมุนตาม angle ที่ยิงอัตโนมัติ
-
----
-
-## 💣 Special
-
-| ค่า | รายละเอียด |
-|-----|-----------|
-| เริ่มต้น | 2 ลูก |
-| สูงสุด | 9 ลูก |
-| ดาเมจบอส | 250 / ลูก |
-| ดาเมจศัตรู | pass-through (+15 score) |
-
----
-
-## 🎁 ไอเทม Drop
-
-ศัตรูมีโอกาส **28%** ทิ้งไอเทมเมื่อตาย
-
-| ไอเทม | สี | ผล |
-|-------|----|----|
-| Life ❤ | แดง | HP +20 (max 100) |
-| Shield 🛡 | ฟ้า | ดูดซับความเสียหายประมาณ 10 วินาที |
-| Special ★ | ส้ม | Special +1 |
-| Weapon W | เขียว | Weapon Level +1 |
-
----
-
-## 🏆 Score
-
-### ระหว่างเกม
-| การกระทำ | คะแนน |
-|---------|-------|
-| กำจัดศัตรูด้วยกระสุน | +10 |
-| กำจัดศัตรูด้วย Special | +15 |
-
-### Bonus เมื่อชนะ
-| Bonus | สูตร | สูงสุด |
-|-------|------|--------|
-| ⏱ Time | `max(0, 5000 − วินาที × 30)` | 5,000 |
-| ❤ HP | `HP ที่เหลือ × 20` | 2,000 |
-| ★ Special | `Special ที่เหลือ × 300` | 2,700 |
-
-> ยิ่งชนะเร็ว + เลือดเหลือมาก + Special เหลือมาก = คะแนนสูง
-
-### Ranking
-- บันทึก Top 10 ไว้ใน **localStorage** ของเบราว์เซอร์
-- กรอกชื่อผ่าน virtual keyboard บนหน้าจอ
-- ข้อมูลคงอยู่แม้ refresh (หายเมื่อล้าง browser data)
-
----
-
-## ⚙️ ปรับแต่งเกม
-
-### `js/settings.js` — ค่าพื้นฐาน
-```js
-const PLAYER_SPEED     = 7;   // ความเร็วผู้เล่น
-const BULLET_SPEED_VAL = 12;  // ความเร็วกระสุน
-const SPECIAL_SPEED    = 9;   // ความเร็ว Special
-const START_SPECIALS   = 2;   // Special เริ่มต้น
-const MAX_SPECIALS     = 9;   // Special สูงสุด
-const MAX_WEAPON_LEVEL = 4;   // Level อาวุธสูงสุด
-```
-
-### `js/game.js` — ความยากและ spawn
-```js
-if(this.killed >= 10)      // จำนวนศัตรูก่อนเจอบอส → เพิ่มให้เกมยาวขึ้น
-if(this.spawnTimer >= 60)  // spawn rate → ลดให้ยากขึ้น เพิ่มให้ง่ายขึ้น
-```
-
-### `js/Character/boss.js` — ความโหดบอส
-```js
-this.hp = 3500;                  // HP บอส
-this._rage ? 45 : 65             // fire rate (frames): rage / ปกติ
-this._rage ? 7  : 4              // ความเร็วเคลื่อนที่
-this._rage ? 5.5 : 4             // ความเร็วกระสุน
-```
-
----
-
-## 🖼️ แนวทางทำ Sprite
-
-- ใช้ **PNG โปร่งใส** (alpha channel) ทุกไฟล์
-- ถ้าพื้นหลังเป็นสีขาว เกมจะพยายามลบให้อัตโนมัติ (`removeBackground`)
-- `bullet.png` — วาด **หันหัวขึ้น** เกมจะหมุนตาม angle เอง
-- รูป item แนะนำ **36×36 px** วงกลมกลางภาพ เพื่อให้ glow effect สวย
-
----
-
-## 🚀 Deploy บน GitHub Pages
-
-1. สร้าง **Public Repository** บน GitHub
-2. Upload ไฟล์ทั้งหมด — `index.html` ต้องอยู่ที่ **root** ของ repo
-3. **Settings → Pages → Source: `main` / `(root)`**
-4. รอ 1–3 นาที → เล่นได้ที่ `https://username.github.io/repo-name/`
-
-### ทดสอบ Local
+ไม่ต้อง build — static files ทั้งหมด
 
 ```bash
-# วิธีที่ 1: VS Code + Live Server extension
-# วิธีที่ 2: Python
-python3 -m http.server 8080
-# เปิด http://localhost:8080
+python3 -m http.server 8000
+# เปิด http://localhost:8000
 ```
 
-> ❗ ห้ามเปิดด้วย `file://` โดยตรง — รูปและเสียงจะโหลดไม่ได้ (CORS)
-
-### Add to Home Screen (iPhone)
-
-เปิดลิงก์ใน **Safari** → Share → **"Add to Home Screen"**
-→ เล่นแบบ Fullscreen เหมือน native app
+อัปโหลดขึ้น GitHub Pages, Netlify, Vercel หรือ static hosting ใดก็ได้
 
 ---
 
-## 🐛 Bug ที่รู้จัก / ข้อควรระวัง
+## 📝 Bug Fix Log
 
-- BGM ต้องการ user interaction ก่อนจึงจะเล่นได้ (iOS policy) — กดปุ่มใดก็ได้เพื่อเปิดเสียง
-- Ranking เก็บใน localStorage ของเบราว์เซอร์นั้นๆ — ไม่ sync ข้ามอุปกรณ์
+| ปัญหา | แก้ที่ |
+|-------|-------|
+| SFX ไม่มีเสียงบน Chrome Windows | `game.js` — เปลี่ยน fetch → XMLHttpRequest |
+| BGM เล่นตอน page ไม่ active | `game.js` + `index.html` — `_pageActive` flag |
+| Intro phase 4 กรงค้างหน้าจอ | `game.js` — `cage.alive = false` หลัง phase 3 |
+| Intro phase 4 loop กลับ phase 0 crash | `game.js` — new Friend/Boss ก่อน reset |
+| Boss fight กรงหายไป | `game.js` — `_addBossScene()` set `cage.alive = true` |
+| Animation รอบ 2 ค้าง | `game.js` — reset `reachedFriend`, `victoryTimer`, `victoryCanExit` ใน restart() |
+| Victory tap ข้ามไม่ได้ | `game.js` — เพิ่ม Victory case ใน handleTap() |
+| Victory Total ซ้อนกัน / มองไม่เห็น | `game.js` — แยก 2 บรรทัด + เปลี่ยนสีเป็นเหลือง |
+| Game Over / Ranking ปุ่มสั้นกว่า text | `game.js`, `ranking.js` — ขยาย `bw = WIDTH-40` |
+| Ranking "A" key ชนกับ entry mode | `ranking.js` — เช็ค `mode === 'board'` ก่อนเท่านั้น |
